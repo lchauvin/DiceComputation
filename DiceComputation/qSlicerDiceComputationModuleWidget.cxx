@@ -67,6 +67,21 @@ void qSlicerDiceComputationModuleWidget::setup()
 
   connect(d->LabelMapNumberWidget, SIGNAL(valueChanged(double)),
 	  this, SLOT(onLabelMapNumberChanged(double)));
+
+  connect(d->ComputeDiceCoeff, SIGNAL(clicked()),
+          this, SLOT(onComputeDiceCoeffClicked()));
+
+  connect(this, SIGNAL(mrmlSceneChanged(vtkMRMLScene*)),
+          this, SLOT(onMRMLSceneChanged(vtkMRMLScene*)));
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerDiceComputationModuleWidget::onMRMLSceneChanged(vtkMRMLScene* newScene)
+{
+  Q_D(qSlicerDiceComputationModuleWidget);
+
+  // 2 widgets to start
+  d->LabelMapNumberWidget->setValue(2);
 }
 
 //-----------------------------------------------------------------------------
@@ -86,7 +101,7 @@ void qSlicerDiceComputationModuleWidget::onLabelMapNumberChanged(double newMapNu
       if ((child = d->LabelMapLayout->takeAt(i)) != 0)
         {
         d->LabelMapLayout->removeWidget(child->widget());
-        delete child->widget();
+        child->widget()->deleteLater();
         delete child;
         }
       }
@@ -98,12 +113,21 @@ void qSlicerDiceComputationModuleWidget::onLabelMapNumberChanged(double newMapNu
       {
       // Add new widgets to the layout
       qSlicerDiceComputationLabelMapSelectorWidget* newItem =
-        new qSlicerDiceComputationLabelMapSelectorWidget();
+        new qSlicerDiceComputationLabelMapSelectorWidget(d->LabelMapsFrame);
       if (newItem)
         {
+        newItem->setMRMLScene(this->mrmlScene());
         d->LabelMapLayout->addWidget(newItem);
+        newItem->setPosition(d->LabelMapLayout->count());
         }
       }
     }
 }
 
+//-----------------------------------------------------------------------------
+void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
+{
+  Q_D(qSlicerDiceComputationModuleWidget);
+
+  
+}

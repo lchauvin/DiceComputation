@@ -24,6 +24,8 @@
 #include "qSlicerDiceComputationLabelMapSelectorWidget.h"
 #include "ui_qSlicerDiceComputationLabelMapSelectorWidget.h"
 
+#include "vtkMRMLScene.h"
+
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_DiceComputation
 class qSlicerDiceComputationLabelMapSelectorWidgetPrivate
@@ -65,10 +67,38 @@ qSlicerDiceComputationLabelMapSelectorWidget
 {
   Q_D(qSlicerDiceComputationLabelMapSelectorWidget);
   d->setupUi(this);
+
+  d->LabelMapSelector->setNodeTypes(QStringList() << "vtkMRMLScalarVolumeNode");
 }
 
 //-----------------------------------------------------------------------------
 qSlicerDiceComputationLabelMapSelectorWidget
 ::~qSlicerDiceComputationLabelMapSelectorWidget()
 {
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerDiceComputationLabelMapSelectorWidget
+::setMRMLScene(vtkMRMLScene* newScene)
+{
+  Q_D(qSlicerDiceComputationLabelMapSelectorWidget);
+
+  if (!newScene)
+    {
+    return;
+    }
+
+  d->LabelMapSelector->setMRMLScene(newScene);
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerDiceComputationLabelMapSelectorWidget
+::setPosition(int itemPosition)
+{
+  Q_D(qSlicerDiceComputationLabelMapSelectorWidget);
+
+  std::stringstream labelName;
+  labelName << "LabelMap " << itemPosition;
+  
+  d->LabelMapLabel->setText(labelName.str().c_str());
 }

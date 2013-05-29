@@ -26,6 +26,12 @@
 // Qt includes
 #include <QWidget>
 
+// MRML includes
+#include "vtkMRMLScene.h"
+
+// Standard includes
+#include <sstream>
+
 // LabelMapSelector Widgets includes
 #include "qSlicerDiceComputationModuleWidgetsExport.h"
 
@@ -40,6 +46,9 @@ public:
   typedef QWidget Superclass;
   qSlicerDiceComputationLabelMapSelectorWidget(QWidget *parent=0);
   virtual ~qSlicerDiceComputationLabelMapSelectorWidget();
+
+  void setMRMLScene(vtkMRMLScene* newScene);
+  void setPosition(int itemPosition);
 
 protected slots:
 

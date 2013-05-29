@@ -46,6 +46,8 @@ public:
 
 public slots:
   void onLabelMapNumberChanged(double mapNumber);
+  void onComputeDiceCoeffClicked();
+  void onMRMLSceneChanged(vtkMRMLScene* newScene);
 
 protected:
   QScopedPointer<qSlicerDiceComputationModuleWidgetPrivate> d_ptr;
