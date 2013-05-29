@@ -84,3 +84,34 @@ void vtkSlicerDiceComputationLogic
 {
 }
 
+//---------------------------------------------------------------------------
+void vtkSlicerDiceComputationLogic
+::ComputeDiceCoefficient(int numberOfLabelMaps, 
+			 std::vector<vtkMRMLScalarVolumeNode*> labelMaps,
+			 std::vector<std::vector<double> >& resultsArray)
+{  
+  
+  // Clean previous results and resize array
+  resultsArray.clear();
+  resultsArray.resize(numberOfLabelMaps);
+  for (int i = 0; i < numberOfLabelMaps; i++)
+    {
+    resultsArray[i].clear();
+    resultsArray[i].resize(numberOfLabelMaps);
+    }
+
+  // TODO
+  // if i = j
+    // resultsArray[i][j] = 1.0
+
+  // else
+
+    // Compute dice coefficient for each label map
+    // int numberOfPixelIntersection = ComputeIntersection(label1, label2);
+    // int pixelsLabel1 = GetNumberOfPixels(label1);
+    // int pixelsLabel2 = GetNumberOfPixels(label2);
+    // double diceCoeff = 2*numberOfPixelIntersection / (pixelsLabel1 + pixelsLabel2);
+
+    // Write results in array (symmetric)
+    // resultsArray[i][j] = resultsArray[j][i] = diceCoeff;
+}

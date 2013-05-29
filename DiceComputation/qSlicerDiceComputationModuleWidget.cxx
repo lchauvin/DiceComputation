@@ -27,12 +27,18 @@
 #include "qSlicerDiceComputationModuleWidget.h"
 #include "ui_qSlicerDiceComputationModuleWidget.h"
 
+#include "vtkSlicerDiceComputationLogic.h"
+
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class qSlicerDiceComputationModuleWidgetPrivate: public Ui_qSlicerDiceComputationModuleWidget
 {
 public:
   qSlicerDiceComputationModuleWidgetPrivate();
+  
+  std::vector<std::vector<double> > resultsArray;
+  std::vector<vtkMRMLScalarVolumeNode*> labelMaps;
+  int numberOfSelectedNodes;
 };
 
 //-----------------------------------------------------------------------------
@@ -41,6 +47,7 @@ public:
 //-----------------------------------------------------------------------------
 qSlicerDiceComputationModuleWidgetPrivate::qSlicerDiceComputationModuleWidgetPrivate()
 {
+  this->numberOfSelectedNodes = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -131,7 +138,10 @@ void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
 {
   Q_D(qSlicerDiceComputationModuleWidget);
 
-  int numberOfSelectedNodes = 0;
+  // Check selected nodes
+  d->labelMaps.clear();
+  d->numberOfSelectedNodes = 0;
+
   for (int i = 0; i < d->LabelMapLayout->count(); i++)
     {
     QLayoutItem* child;
@@ -141,13 +151,24 @@ void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
         = dynamic_cast<qSlicerDiceComputationLabelMapSelectorWidget*>(child->widget());
       if (tmpWidget)
         {
+        d->labelMaps.push_back(tmpWidget->getSelectedNode());
         if (tmpWidget->getSelectedNode())
           {
-          numberOfSelectedNodes++;
+          d->numberOfSelectedNodes++;
           }
         }
       }
     }
 
-  std::cerr << "Number of selected nodes: " << numberOfSelectedNodes << std::endl;
+  // Compute dice coefficients
+  vtkSlicerDiceComputationLogic* dcLogic =
+    vtkSlicerDiceComputationLogic::SafeDownCast(this->logic());
+  if (dcLogic)
+    {
+    dcLogic->ComputeDiceCoefficient(d->numberOfSelectedNodes, d->labelMaps, d->resultsArray);
+    }
+  
+  // Display results
+  // TODO
 }
+

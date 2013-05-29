@@ -33,6 +33,7 @@
 #include "vtkSlicerModuleLogic.h"
 
 // MRML includes
+#include "vtkMRMLScalarVolumeNode.h"
 
 // STD includes
 #include <cstdlib>
@@ -49,6 +50,10 @@ public:
   static vtkSlicerDiceComputationLogic *New();
   vtkTypeMacro(vtkSlicerDiceComputationLogic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent);
+
+  void ComputeDiceCoefficient(int numberOfLabelMaps,
+			      std::vector<vtkMRMLScalarVolumeNode*> labelMaps,
+			      std::vector<std::vector<double> >& resultsArray);
 
 protected:
   vtkSlicerDiceComputationLogic();
