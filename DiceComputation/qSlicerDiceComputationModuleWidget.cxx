@@ -65,6 +65,8 @@ void qSlicerDiceComputationModuleWidget::setup()
   d->setupUi(this);
   this->Superclass::setup();
 
+  d->ProgressBar->hide();
+
   connect(d->LabelMapNumberWidget, SIGNAL(valueChanged(double)),
 	  this, SLOT(onLabelMapNumberChanged(double)));
 
@@ -129,5 +131,23 @@ void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
 {
   Q_D(qSlicerDiceComputationModuleWidget);
 
-  
+  int numberOfSelectedNodes = 0;
+  for (int i = 0; i < d->LabelMapLayout->count(); i++)
+    {
+    QLayoutItem* child;
+    if ((child = d->LabelMapLayout->itemAt(i)) != 0)
+      {        
+      qSlicerDiceComputationLabelMapSelectorWidget* tmpWidget
+        = dynamic_cast<qSlicerDiceComputationLabelMapSelectorWidget*>(child->widget());
+      if (tmpWidget)
+        {
+        if (tmpWidget->getSelectedNode())
+          {
+          numberOfSelectedNodes++;
+          }
+        }
+      }
+    }
+
+  std::cerr << "Number of selected nodes: " << numberOfSelectedNodes << std::endl;
 }

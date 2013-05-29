@@ -39,6 +39,9 @@ public:
   qSlicerDiceComputationLabelMapSelectorWidgetPrivate(
     qSlicerDiceComputationLabelMapSelectorWidget& object);
   virtual void setupUi(qSlicerDiceComputationLabelMapSelectorWidget*);
+
+  bool isNodeSelected;
+  vtkMRMLScalarVolumeNode* nodeSelected;
 };
 
 // --------------------------------------------------------------------------
@@ -47,6 +50,8 @@ qSlicerDiceComputationLabelMapSelectorWidgetPrivate
   qSlicerDiceComputationLabelMapSelectorWidget& object)
   : q_ptr(&object)
 {
+  this->isNodeSelected = false;
+  this->nodeSelected = NULL;
 }
 
 // --------------------------------------------------------------------------
@@ -68,7 +73,17 @@ qSlicerDiceComputationLabelMapSelectorWidget
   Q_D(qSlicerDiceComputationLabelMapSelectorWidget);
   d->setupUi(this);
 
+  d->LabelMapSelector->setRemoveEnabled(false);
+  d->LabelMapSelector->setEditEnabled(false);
+  d->LabelMapSelector->setAddEnabled(false);
+  d->LabelMapSelector->setShowHidden(false);
+  d->LabelMapSelector->setNoneEnabled(true);
+  d->LabelMapSelector->setShowChildNodeTypes(true);
+  d->LabelMapSelector->setRenameEnabled(true);
   d->LabelMapSelector->setNodeTypes(QStringList() << "vtkMRMLScalarVolumeNode");
+
+  connect(d->LabelMapSelector, SIGNAL(currentNodeChanged(vtkMRMLNode*)),
+	  this, SLOT(onNodeChanged(vtkMRMLNode*)));
 }
 
 //-----------------------------------------------------------------------------
@@ -101,4 +116,36 @@ void qSlicerDiceComputationLabelMapSelectorWidget
   labelName << "LabelMap " << itemPosition;
   
   d->LabelMapLabel->setText(labelName.str().c_str());
+}
+
+//-----------------------------------------------------------------------------
+vtkMRMLScalarVolumeNode* qSlicerDiceComputationLabelMapSelectorWidget
+::getSelectedNode()
+{
+  Q_D(qSlicerDiceComputationLabelMapSelectorWidget);
+
+  if (!d->isNodeSelected || !d->nodeSelected)
+    {
+    return NULL;
+    }
+
+  return d->nodeSelected;
+}
+
+
+//-----------------------------------------------------------------------------
+void qSlicerDiceComputationLabelMapSelectorWidget
+::onNodeChanged(vtkMRMLNode* newNode)
+{
+  Q_D(qSlicerDiceComputationLabelMapSelectorWidget);
+
+  if (!newNode || !newNode->IsA("vtkMRMLScalarVolumeNode"))
+    {
+    d->nodeSelected = NULL;
+    d->isNodeSelected = false;
+    return;
+    }
+  
+  d->nodeSelected = vtkMRMLScalarVolumeNode::SafeDownCast(newNode);
+  d->isNodeSelected = true;
 }

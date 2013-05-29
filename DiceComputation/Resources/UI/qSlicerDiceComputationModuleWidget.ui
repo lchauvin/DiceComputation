@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>366</width>
-    <height>452</height>
+    <width>315</width>
+    <height>334</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -95,6 +95,13 @@
          </widget>
         </item>
        </layout>
+      </item>
+      <item>
+       <widget class="QProgressBar" name="ProgressBar">
+        <property name="value">
+         <number>24</number>
+        </property>
+       </widget>
       </item>
       <item>
        <spacer name="verticalSpacer_2">

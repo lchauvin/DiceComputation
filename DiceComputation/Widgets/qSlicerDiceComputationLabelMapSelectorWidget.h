@@ -28,6 +28,7 @@
 
 // MRML includes
 #include "vtkMRMLScene.h"
+#include "vtkMRMLScalarVolumeNode.h"
 
 // Standard includes
 #include <sstream>
@@ -49,9 +50,11 @@ public:
 
   void setMRMLScene(vtkMRMLScene* newScene);
   void setPosition(int itemPosition);
+  vtkMRMLScalarVolumeNode* getSelectedNode();
 
 protected slots:
-
+  void onNodeChanged(vtkMRMLNode* newNode);
+  
 protected:
   QScopedPointer<qSlicerDiceComputationLabelMapSelectorWidgetPrivate> d_ptr;
 
