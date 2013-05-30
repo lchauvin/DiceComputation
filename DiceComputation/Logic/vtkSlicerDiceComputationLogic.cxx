@@ -26,6 +26,8 @@
 // MRML includes
 
 // VTK includes
+#include <vtkImageAccumulate.h>
+#include <vtkImageData.h>
 #include <vtkNew.h>
 
 // STD includes
@@ -92,26 +94,140 @@ void vtkSlicerDiceComputationLogic
 {  
   
   // Clean previous results and resize array
+  int numberOfSamples = labelMaps.size();
   resultsArray.clear();
-  resultsArray.resize(numberOfLabelMaps);
-  for (int i = 0; i < numberOfLabelMaps; i++)
+  resultsArray.resize(numberOfSamples);
+  for (int i = 0; i < numberOfSamples; i++)
     {
     resultsArray[i].clear();
-    resultsArray[i].resize(numberOfLabelMaps);
+    resultsArray[i].resize(numberOfSamples);
     }
 
-  // TODO
-  // if i = j
-    // resultsArray[i][j] = 1.0
 
-  // else
+  for (int i = 0; i < numberOfSamples; i++)
+    {
+    // Matrix is symmetric. Only do a half (j >= i)
+    for (int j = 0; (j >= i) && (j < numberOfSamples); j++)
+      {
+      // Put -1 if one of the map is not selected
+      if (labelMaps[i] != NULL && labelMaps[j] != NULL)
+	{
+	vtkMRMLScalarVolumeNode* labelMap1 = labelMaps[i];
+	vtkMRMLScalarVolumeNode* labelMap2 = labelMaps[j];
+	
+	// Dice coeff of a map with itself is 1.0
+	if (i == j)
+	  {
+	  resultsArray[i][j] = 1.0;
+	  }
+	else
+	  {
+	  // Compute dice coefficient
+	  int pixelNumber1 = this->GetNumberOfPixels(labelMap1);
+	  int pixelNumber2 = this->GetNumberOfPixels(labelMap2);
+	  
+	  if ((pixelNumber1 > 0) && (pixelNumber2 > 0))
+	    {
+	    int numberOfPixelIntersection = this->ComputeIntersection(labelMap1, labelMap2);
+	    
+	    if (numberOfPixelIntersection >= 0)
+	      {
+	      // Symmetric matrix
+	      // Keep the 2.0 (instead of 2) otherwise results is converted in integer (or cast)
+	      double diceCoeff = 2.0*numberOfPixelIntersection / (pixelNumber1 + pixelNumber2);
+	      resultsArray[i][j] = resultsArray[j][i] = diceCoeff;
+	      }
+	    else
+	      {
+	      resultsArray[i][j] = -1.0;
+	      }
+	    }
+	  else
+	    {
+	    resultsArray[i][j] = -1.0;
+	    }
+	  }
+	}
+      else
+	{
+	resultsArray[i][j] = -1.0;
+	}
+      }
+    }
+}
 
-    // Compute dice coefficient for each label map
-    // int numberOfPixelIntersection = ComputeIntersection(label1, label2);
-    // int pixelsLabel1 = GetNumberOfPixels(label1);
-    // int pixelsLabel2 = GetNumberOfPixels(label2);
-    // double diceCoeff = 2*numberOfPixelIntersection / (pixelsLabel1 + pixelsLabel2);
+//---------------------------------------------------------------------------
+int vtkSlicerDiceComputationLogic
+::ComputeIntersection(vtkMRMLScalarVolumeNode* map1, 
+		      vtkMRMLScalarVolumeNode* map2)
+{
+  if (!map1 || !map2)
+    {
+    return -1;
+    }
 
-    // Write results in array (symmetric)
-    // resultsArray[i][j] = resultsArray[j][i] = diceCoeff;
+  vtkImageData* imData1 = map1->GetImageData();
+  vtkImageData* imData2 = map2->GetImageData();
+
+  if (!imData1 || !imData2)
+    {
+    return -1;
+    }
+
+  int imDim1[3] = {0,0,0};
+  imData1->GetDimensions(imDim1);
+
+  int imDim2[3] = {0,0,0};
+  imData2->GetDimensions(imDim2);
+  
+  // TODO: Align label maps ?
+
+  int numberOfCommonPixels = 0;
+  for(int i = 0; i < imDim1[0]; i++)
+    {
+    for (int j = 0; j < imDim1[1]; j++)
+      {
+      for (int k = 0; k < imDim1[2]; k++)
+	{
+	if (imData1->GetScalarComponentAsDouble(i,j,k,0) > 0)
+	  {
+	  if (imData2->GetScalarComponentAsDouble(i,j,k,0) > 0)
+	    {
+	    numberOfCommonPixels++;
+	    }
+	  }
+	}
+      }
+    }
+  
+  return numberOfCommonPixels;
+}
+
+//---------------------------------------------------------------------------
+int vtkSlicerDiceComputationLogic
+::GetNumberOfPixels(vtkMRMLScalarVolumeNode* map)
+{
+  if (!map || map->GetLabelMap() == 0)
+    {
+    return -1;
+    }
+
+  vtkImageData* imData = map->GetImageData();
+  if (!imData)
+    {
+    return -1;
+    }
+
+  int numberOfPixels = 0;
+
+  // Efficient way to computer number of pixels != 0
+  vtkSmartPointer<vtkImageAccumulate> pixelCounter 
+    = vtkSmartPointer<vtkImageAccumulate>::New();
+  pixelCounter->SetInput(imData);
+  pixelCounter->IgnoreZeroOn();
+  pixelCounter->Update();
+
+  numberOfPixels = pixelCounter->GetVoxelCount();
+  
+  return numberOfPixels;
 }

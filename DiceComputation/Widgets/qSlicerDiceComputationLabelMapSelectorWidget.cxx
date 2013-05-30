@@ -145,7 +145,18 @@ void qSlicerDiceComputationLabelMapSelectorWidget
     d->isNodeSelected = false;
     return;
     }
+    
+  vtkMRMLScalarVolumeNode* tmpNode = vtkMRMLScalarVolumeNode::SafeDownCast(newNode);
   
-  d->nodeSelected = vtkMRMLScalarVolumeNode::SafeDownCast(newNode);
+  if (!tmpNode->GetLabelMap())
+    {
+    // Not a label map. Do not select it.
+    d->LabelMapSelector->setCurrentNode(NULL);
+    d->nodeSelected = NULL;
+    d->isNodeSelected = false;
+    return;
+    }
+
+  d->nodeSelected = tmpNode;
   d->isNodeSelected = true;
 }

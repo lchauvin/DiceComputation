@@ -65,6 +65,11 @@ protected:
   virtual void UpdateFromMRMLScene();
   virtual void OnMRMLSceneNodeAdded(vtkMRMLNode* node);
   virtual void OnMRMLSceneNodeRemoved(vtkMRMLNode* node);
+
+  int ComputeIntersection(vtkMRMLScalarVolumeNode* map1, 
+			  vtkMRMLScalarVolumeNode* map2);
+  int GetNumberOfPixels(vtkMRMLScalarVolumeNode* map);
+
 private:
 
   vtkSlicerDiceComputationLogic(const vtkSlicerDiceComputationLogic&); // Not implemented

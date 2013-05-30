@@ -169,6 +169,8 @@ void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
     }
   
   // Display results
+  std::cerr << "Dice Coeff: " << d->resultsArray[0][1] << std::endl;
+  
   // TODO
 }
 
