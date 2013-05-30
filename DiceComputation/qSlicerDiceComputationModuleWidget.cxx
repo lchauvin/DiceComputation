@@ -12,13 +12,13 @@
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   See the License for the specific language governing permissions and
   limitations under the License.
- 
+
   This file was originally developed by Laurent Chauvin, Brigham and Women's
   Hospital. The project was supported by grants 5P01CA067165,
   5R01CA124377, 5R01CA138586, 2R44DE019322, 7R01CA124377,
   5R42CA137886, 8P41EB015898
- 
-==============================================================================*/
+
+  ==============================================================================*/
 
 // Qt includes
 #include <QDebug>
@@ -35,10 +35,9 @@ class qSlicerDiceComputationModuleWidgetPrivate: public Ui_qSlicerDiceComputatio
 {
 public:
   qSlicerDiceComputationModuleWidgetPrivate();
-  
+
   std::vector<std::vector<double> > resultsArray;
   std::vector<vtkMRMLScalarVolumeNode*> labelMaps;
-  int numberOfSelectedNodes;
 };
 
 //-----------------------------------------------------------------------------
@@ -47,7 +46,6 @@ public:
 //-----------------------------------------------------------------------------
 qSlicerDiceComputationModuleWidgetPrivate::qSlicerDiceComputationModuleWidgetPrivate()
 {
-  this->numberOfSelectedNodes = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -56,7 +54,7 @@ qSlicerDiceComputationModuleWidgetPrivate::qSlicerDiceComputationModuleWidgetPri
 //-----------------------------------------------------------------------------
 qSlicerDiceComputationModuleWidget::qSlicerDiceComputationModuleWidget(QWidget* _parent)
   : Superclass( _parent )
-  , d_ptr( new qSlicerDiceComputationModuleWidgetPrivate )
+    , d_ptr( new qSlicerDiceComputationModuleWidgetPrivate )
 {
 }
 
@@ -75,7 +73,7 @@ void qSlicerDiceComputationModuleWidget::setup()
   d->ProgressBar->hide();
 
   connect(d->LabelMapNumberWidget, SIGNAL(valueChanged(double)),
-	  this, SLOT(onLabelMapNumberChanged(double)));
+          this, SLOT(onLabelMapNumberChanged(double)));
 
   connect(d->ComputeDiceCoeff, SIGNAL(clicked()),
           this, SLOT(onComputeDiceCoeffClicked()));
@@ -140,22 +138,17 @@ void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
 
   // Check selected nodes
   d->labelMaps.clear();
-  d->numberOfSelectedNodes = 0;
 
   for (int i = 0; i < d->LabelMapLayout->count(); i++)
     {
     QLayoutItem* child;
     if ((child = d->LabelMapLayout->itemAt(i)) != 0)
-      {        
+      {
       qSlicerDiceComputationLabelMapSelectorWidget* tmpWidget
         = dynamic_cast<qSlicerDiceComputationLabelMapSelectorWidget*>(child->widget());
       if (tmpWidget)
         {
         d->labelMaps.push_back(tmpWidget->getSelectedNode());
-        if (tmpWidget->getSelectedNode())
-          {
-          d->numberOfSelectedNodes++;
-          }
         }
       }
     }
@@ -165,12 +158,48 @@ void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
     vtkSlicerDiceComputationLogic::SafeDownCast(this->logic());
   if (dcLogic)
     {
-    dcLogic->ComputeDiceCoefficient(d->numberOfSelectedNodes, d->labelMaps, d->resultsArray);
+    dcLogic->ComputeDiceCoefficient(d->labelMaps, d->resultsArray);
     }
-  
-  // Display results
-  std::cerr << "Dice Coeff: " << d->resultsArray[0][1] << std::endl;
-  
-  // TODO
-}
 
+  // Display results
+  if (d->OutputFrame->collapsed())
+    {
+    d->OutputFrame->setCollapsed(false);
+    }
+
+  d->OutputResultsTable->clear();
+  d->OutputResultsTable->clearContents();
+  d->OutputResultsTable->setRowCount(d->labelMaps.size());
+  d->OutputResultsTable->setColumnCount(d->labelMaps.size());
+
+  for (int i = 0; i < d->labelMaps.size(); i++)
+    {
+    for (int j = 0; j < d->labelMaps.size(); j++)
+      {
+      QTableWidgetItem* item = new QTableWidgetItem();
+      if (item)
+        {
+        double diceCoeff = d->resultsArray[i][j];
+        QBrush* brush = new QBrush();
+        if (diceCoeff == -1)
+          {
+          // Wrong. Red color.
+          brush->setColor(QColor::fromRgb(255,0,0));
+          brush->setStyle(Qt::FDiagPattern);
+          }
+        else
+          {
+          brush->setColor(QColor::fromRgb(0,255,0,diceCoeff*255));
+          brush->setStyle(Qt::SolidPattern);
+          }
+        item->setBackground(*brush);
+
+        if (diceCoeff >= 0)
+          {
+          item->setText(QString::number(diceCoeff));
+          }
+        d->OutputResultsTable->setItem(i,j,item);
+        }
+      }
+    }
+}

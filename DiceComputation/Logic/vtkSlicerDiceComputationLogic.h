@@ -12,13 +12,13 @@
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   See the License for the specific language governing permissions and
   limitations under the License.
- 
+
   This file was originally developed by Laurent Chauvin, Brigham and Women's
   Hospital. The project was supported by grants 5P01CA067165,
   5R01CA124377, 5R01CA138586, 2R44DE019322, 7R01CA124377,
   5R42CA137886, 8P41EB015898
- 
-==============================================================================*/
+
+  ==============================================================================*/
 
 // .NAME vtkSlicerDiceComputationLogic - slicer logic class for volumes manipulation
 // .SECTION Description
@@ -43,7 +43,7 @@
 
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class VTK_SLICER_DICECOMPUTATION_MODULE_LOGIC_EXPORT vtkSlicerDiceComputationLogic :
-  public vtkSlicerModuleLogic
+public vtkSlicerModuleLogic
 {
 public:
 
@@ -51,9 +51,8 @@ public:
   vtkTypeMacro(vtkSlicerDiceComputationLogic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent);
 
-  void ComputeDiceCoefficient(int numberOfLabelMaps,
-			      std::vector<vtkMRMLScalarVolumeNode*> labelMaps,
-			      std::vector<std::vector<double> >& resultsArray);
+  void ComputeDiceCoefficient(std::vector<vtkMRMLScalarVolumeNode*> labelMaps,
+                              std::vector<std::vector<double> >& resultsArray);
 
 protected:
   vtkSlicerDiceComputationLogic();
@@ -66,8 +65,8 @@ protected:
   virtual void OnMRMLSceneNodeAdded(vtkMRMLNode* node);
   virtual void OnMRMLSceneNodeRemoved(vtkMRMLNode* node);
 
-  int ComputeIntersection(vtkMRMLScalarVolumeNode* map1, 
-			  vtkMRMLScalarVolumeNode* map2);
+  int ComputeIntersection(vtkMRMLScalarVolumeNode* map1,
+                          vtkMRMLScalarVolumeNode* map2);
   int GetNumberOfPixels(vtkMRMLScalarVolumeNode* map);
 
 private:

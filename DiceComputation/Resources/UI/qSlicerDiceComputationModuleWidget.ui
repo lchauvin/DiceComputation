@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>315</width>
-    <height>334</height>
+    <height>319</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -135,9 +135,6 @@
        <widget class="QTableWidget" name="OutputResultsTable">
         <property name="editTriggers">
          <set>QAbstractItemView::NoEditTriggers</set>
-        </property>
-        <property name="alternatingRowColors">
-         <bool>true</bool>
         </property>
        </widget>
       </item>

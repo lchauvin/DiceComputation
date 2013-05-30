@@ -12,13 +12,13 @@
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   See the License for the specific language governing permissions and
   limitations under the License.
- 
+
   This file was originally developed by Laurent Chauvin, Brigham and Women's
   Hospital. The project was supported by grants 5P01CA067165,
   5R01CA124377, 5R01CA138586, 2R44DE019322, 7R01CA124377,
   5R42CA137886, 8P41EB015898
- 
-==============================================================================*/
+
+  ==============================================================================*/
 
 // Qt includes
 #include <QtPlugin>
@@ -57,7 +57,7 @@ qSlicerDiceComputationModulePrivate
 qSlicerDiceComputationModule
 ::qSlicerDiceComputationModule(QObject* _parent)
   : Superclass(_parent)
-  , d_ptr(new qSlicerDiceComputationModulePrivate)
+    , d_ptr(new qSlicerDiceComputationModulePrivate)
 {
 }
 
@@ -69,20 +69,22 @@ qSlicerDiceComputationModule::~qSlicerDiceComputationModule()
 //-----------------------------------------------------------------------------
 QString qSlicerDiceComputationModule::helpText()const
 {
-  return "This is a loadable module bundled in an extension";
+  return QString("This loadable module allows to compute Dice's coefficient for given label maps."
+                 "Label maps should be aligned, with same origin and spacing.");
 }
 
 //-----------------------------------------------------------------------------
 QString qSlicerDiceComputationModule::acknowledgementText()const
 {
-  return "This work was was partially funded by NIH grant 3P41RR013218-12S1";
+  return QString("It is supported by grants 5P01CA067165, 5R01CA124377, 5R01CA138586, 2R44DE019322, 7R01CA124377,"
+                 "5R42CA137886, 8P41EB015898");
 }
 
 //-----------------------------------------------------------------------------
 QStringList qSlicerDiceComputationModule::contributors()const
 {
   QStringList moduleContributors;
-  moduleContributors << QString("Jean-Christophe Fillion-Robin (Kitware)");
+  moduleContributors << QString("Laurent Chauvin (BWH)");
   return moduleContributors;
 }
 
@@ -95,7 +97,7 @@ QIcon qSlicerDiceComputationModule::icon()const
 //-----------------------------------------------------------------------------
 QStringList qSlicerDiceComputationModule::categories() const
 {
-  return QStringList() << "Examples";
+  return QStringList() << "Quantification";
 }
 
 //-----------------------------------------------------------------------------
