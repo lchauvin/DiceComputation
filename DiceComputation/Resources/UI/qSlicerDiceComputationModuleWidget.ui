@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>315</width>
-    <height>319</height>
+    <height>293</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -28,7 +28,7 @@
         <item>
          <widget class="QLabel" name="label">
           <property name="text">
-           <string>Number of label map</string>
+           <string>Number of label maps</string>
           </property>
          </widget>
         </item>
@@ -95,13 +95,6 @@
          </widget>
         </item>
        </layout>
-      </item>
-      <item>
-       <widget class="QProgressBar" name="ProgressBar">
-        <property name="value">
-         <number>24</number>
-        </property>
-       </widget>
       </item>
       <item>
        <spacer name="verticalSpacer_2">

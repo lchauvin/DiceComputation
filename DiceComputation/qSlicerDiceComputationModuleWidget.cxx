@@ -22,6 +22,7 @@
 
 // Qt includes
 #include <QDebug>
+#include <QTimer>
 
 // SlicerQt includes
 #include "qSlicerDiceComputationModuleWidget.h"
@@ -35,6 +36,7 @@ class qSlicerDiceComputationModuleWidgetPrivate: public Ui_qSlicerDiceComputatio
 {
 public:
   qSlicerDiceComputationModuleWidgetPrivate();
+  ~qSlicerDiceComputationModuleWidgetPrivate();
 
   std::vector<std::vector<double> > resultsArray;
   std::vector<vtkMRMLScalarVolumeNode*> labelMaps;
@@ -45,6 +47,11 @@ public:
 
 //-----------------------------------------------------------------------------
 qSlicerDiceComputationModuleWidgetPrivate::qSlicerDiceComputationModuleWidgetPrivate()
+{
+}
+
+//-----------------------------------------------------------------------------
+qSlicerDiceComputationModuleWidgetPrivate::~qSlicerDiceComputationModuleWidgetPrivate()
 {
 }
 
@@ -69,8 +76,6 @@ void qSlicerDiceComputationModuleWidget::setup()
   Q_D(qSlicerDiceComputationModuleWidget);
   d->setupUi(this);
   this->Superclass::setup();
-
-  d->ProgressBar->hide();
 
   connect(d->LabelMapNumberWidget, SIGNAL(valueChanged(double)),
           this, SLOT(onLabelMapNumberChanged(double)));
@@ -136,7 +141,7 @@ void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
 {
   Q_D(qSlicerDiceComputationModuleWidget);
 
-  // Check selected nodes
+  // Create list of scalar volume nodes
   d->labelMaps.clear();
 
   for (int i = 0; i < d->LabelMapLayout->count(); i++)
@@ -152,6 +157,28 @@ void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
         }
       }
     }
+
+  // Check at least 2 label maps have been selected
+  int numberOfLabelMaps = 0;
+  for (int i = 0; i < d->labelMaps.size(); i++)
+    {
+    if (d->labelMaps[i] != NULL)
+      {
+      numberOfLabelMaps++;
+      }
+    
+    if (numberOfLabelMaps >= 2)
+      {
+      // At least 2 label maps found. No need to continue.
+      break;
+      }
+    }
+
+  if (numberOfLabelMaps < 2)
+    {
+    return;
+    }
+  
 
   // Compute dice coefficients
   vtkSlicerDiceComputationLogic* dcLogic =
@@ -187,14 +214,20 @@ void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
           brush->setColor(QColor::fromRgb(255,0,0));
           brush->setStyle(Qt::FDiagPattern);
           }
+        else if (i == j)
+          {
+          brush->setColor(QColor::fromRgb(0,255,0,128));
+          brush->setStyle(Qt::FDiagPattern);
+          }
         else
           {
+          // Good. Green color. Opacity depending on Dice's coefficient
           brush->setColor(QColor::fromRgb(0,255,0,diceCoeff*255));
           brush->setStyle(Qt::SolidPattern);
           }
         item->setBackground(*brush);
 
-        if (diceCoeff >= 0)
+        if ((diceCoeff >= 0) && (i != j))
           {
           item->setText(QString::number(diceCoeff));
           }
