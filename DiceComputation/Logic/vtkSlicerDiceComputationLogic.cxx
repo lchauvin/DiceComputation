@@ -28,6 +28,7 @@
 // VTK includes
 #include <vtkImageAccumulate.h>
 #include <vtkImageData.h>
+#include <vtkImageLogic.h>
 #include <vtkNew.h>
 
 // STD includes
@@ -172,31 +173,20 @@ int vtkSlicerDiceComputationLogic
     return -1;
     }
 
-  int imDim1[3] = {0,0,0};
-  imData1->GetDimensions(imDim1);
-
-  int imDim2[3] = {0,0,0};
-  imData2->GetDimensions(imDim2);
-
-  // TODO: Align label maps ?
-
   int numberOfCommonPixels = 0;
-  for(int i = 0; i < imDim1[0]; i++)
-    {
-    for (int j = 0; j < imDim1[1]; j++)
-      {
-      for (int k = 0; k < imDim1[2]; k++)
-        {
-        if (imData1->GetScalarComponentAsDouble(i,j,k,0) > 0)
-          {
-          if (imData2->GetScalarComponentAsDouble(i,j,k,0) > 0)
-            {
-            numberOfCommonPixels++;
-            }
-          }
-        }
-      }
-    }
+
+  vtkSmartPointer<vtkImageLogic> logicFilter 
+    = vtkSmartPointer<vtkImageLogic>::New();
+  logicFilter->SetInput1(imData1);
+  logicFilter->SetInput2(imData2);
+  logicFilter->SetOperationToAnd();
+  logicFilter->Update();
+
+  vtkSmartPointer<vtkImageData> tmpOutput 
+    = vtkSmartPointer<vtkImageData>::New();
+  tmpOutput = logicFilter->GetOutput();
+
+  numberOfCommonPixels = this->GetNumberOfPixels(tmpOutput.GetPointer());
 
   return numberOfCommonPixels;
 }
@@ -216,6 +206,13 @@ int vtkSlicerDiceComputationLogic
     return -1;
     }
 
+  return this->GetNumberOfPixels(imData);
+}
+
+//---------------------------------------------------------------------------
+int vtkSlicerDiceComputationLogic
+::GetNumberOfPixels(vtkImageData* imData)
+{
   int numberOfPixels = 0;
 
   // Efficient way to computer number of pixels != 0

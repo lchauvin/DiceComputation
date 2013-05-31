@@ -68,6 +68,7 @@ protected:
   int ComputeIntersection(vtkMRMLScalarVolumeNode* map1,
                           vtkMRMLScalarVolumeNode* map2);
   int GetNumberOfPixels(vtkMRMLScalarVolumeNode* map);
+  int GetNumberOfPixels(vtkImageData* imData);
 
 private:
 
