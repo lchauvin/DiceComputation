@@ -211,12 +211,12 @@ void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
         if (diceCoeff == -1)
           {
           // Wrong. Red color.
-          brush->setColor(QColor::fromRgb(255,0,0));
+          brush->setColor(QColor::fromRgb(255,0,0,128));
           brush->setStyle(Qt::FDiagPattern);
           }
         else if (i == j)
           {
-          brush->setColor(QColor::fromRgb(0,255,0,128));
+          brush->setColor(QColor::fromRgb(0,255,0,220));
           brush->setStyle(Qt::FDiagPattern);
           }
         else
