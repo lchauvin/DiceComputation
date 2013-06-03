@@ -69,8 +69,8 @@ qSlicerDiceComputationModule::~qSlicerDiceComputationModule()
 //-----------------------------------------------------------------------------
 QString qSlicerDiceComputationModule::helpText()const
 {
-  return QString("This loadable module allows to compute Dice's coefficient for given label maps."
-                 "Label maps should be aligned, with same origin and spacing.");
+  return QString("This module is capable of calculating Dice's Similarity Coefficient (DSC) between several registered label maps."
+                 "The DSC gives measures of the volumetric overlap between two of the segmented structures");
 }
 
 //-----------------------------------------------------------------------------
