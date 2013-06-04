@@ -47,6 +47,7 @@ public:
   public slots:
     void onLabelMapNumberChanged(double mapNumber);
     void onComputeDiceCoeffClicked();
+    void onAverageClicked();
     void onMRMLSceneChanged(vtkMRMLScene* newScene);
 
 protected:

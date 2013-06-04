@@ -88,6 +88,16 @@
          </spacer>
         </item>
         <item>
+         <widget class="QPushButton" name="AverageButton">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string>Average</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QPushButton" name="ComputeDiceCoeff">
           <property name="text">
            <string>Calculate DSC</string>

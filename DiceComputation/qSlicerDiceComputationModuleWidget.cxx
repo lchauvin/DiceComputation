@@ -40,6 +40,8 @@ public:
 
   std::vector<std::vector<double> > resultsArray;
   std::vector<vtkMRMLScalarVolumeNode*> labelMaps;
+  int labelMapSize;
+  bool averageComputed;
 };
 
 //-----------------------------------------------------------------------------
@@ -48,6 +50,8 @@ public:
 //-----------------------------------------------------------------------------
 qSlicerDiceComputationModuleWidgetPrivate::qSlicerDiceComputationModuleWidgetPrivate()
 {
+  this->labelMapSize = 0;
+  this->averageComputed = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -82,6 +86,9 @@ void qSlicerDiceComputationModuleWidget::setup()
 
   connect(d->ComputeDiceCoeff, SIGNAL(clicked()),
           this, SLOT(onComputeDiceCoeffClicked()));
+
+  connect(d->AverageButton, SIGNAL(clicked()),
+	  this, SLOT(onAverageClicked()));
 
   connect(this, SIGNAL(mrmlSceneChanged(vtkMRMLScene*)),
           this, SLOT(onMRMLSceneChanged(vtkMRMLScene*)));
@@ -160,7 +167,9 @@ void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
 
   // Check at least 2 label maps have been selected
   int numberOfLabelMaps = 0;
-  for (int i = 0; i < d->labelMaps.size(); i++)
+  d->labelMapSize = d->labelMaps.size();
+
+  for (int i = 0; i < d->labelMapSize; i++)
     {
     if (d->labelMaps[i] != NULL)
       {
@@ -196,12 +205,12 @@ void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
 
   d->OutputResultsTable->clear();
   d->OutputResultsTable->clearContents();
-  d->OutputResultsTable->setRowCount(d->labelMaps.size());
-  d->OutputResultsTable->setColumnCount(d->labelMaps.size());
+  d->OutputResultsTable->setRowCount(d->labelMapSize);
+  d->OutputResultsTable->setColumnCount(d->labelMapSize);
 
-  for (int i = 0; i < d->labelMaps.size(); i++)
+  for (int i = 0; i < d->labelMapSize; i++)
     {
-    for (int j = 0; j < d->labelMaps.size(); j++)
+    for (int j = 0; j < d->labelMapSize; j++)
       {
       QTableWidgetItem* item = new QTableWidgetItem();
       if (item)
@@ -235,4 +244,86 @@ void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
         }
       }
     }
+
+  // Turn on/off average button if data are present in the table
+  d->AverageButton->setEnabled(d->OutputResultsTable->rowCount() != 0);
+
+  // Average not computed for these values
+  d->averageComputed = false;
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerDiceComputationModuleWidget::onAverageClicked()
+{
+  Q_D(qSlicerDiceComputationModuleWidget);
+
+  if (!d->OutputResultsTable)
+    {
+    return;
+    }
+
+  // Average already computed for these values
+  if (d->averageComputed)
+    {
+    return;
+    }
+
+  // Add new row in the table
+  d->OutputResultsTable->insertRow(d->OutputResultsTable->rowCount());
+  QTableWidgetItem* averageHeader = new QTableWidgetItem();
+  if (averageHeader)
+    {
+    averageHeader->setText("Average");
+    d->OutputResultsTable->setVerticalHeaderItem(d->OutputResultsTable->rowCount()-1, averageHeader);
+    }
+  
+  // Compute averages
+  for (int i = 0; i < d->labelMapSize; i++)
+    {
+    int numberOfValues = 0;
+    double average = 0;
+    for (int j = 0; j < d->labelMapSize; j++)
+      {
+      if (i != j)
+	{
+	QTableWidgetItem* item = d->OutputResultsTable->item(j,i);
+	if (item && (item->background().style() != Qt::FDiagPattern))
+	  {
+	  double itemValue = item->text().toDouble();
+	  average += itemValue;
+	  ++numberOfValues;
+	  }
+	}
+      }
+    if (numberOfValues > 0)
+      {
+      average /= numberOfValues;
+      }
+    else
+      {
+      average = -1;
+      }
+    
+    // Create new item
+    QTableWidgetItem* newAverageItem = new QTableWidgetItem();
+    QBrush* newBrush = new QBrush();
+    if (newAverageItem && newBrush)
+      {
+      if (average > 0)
+	{
+	newBrush->setColor((QColor::fromRgb(0,255,0,average*255)));
+	newBrush->setStyle(Qt::SolidPattern);
+	newAverageItem->setText(QString::number(average));
+	}
+      else
+	{
+	newBrush->setColor(QColor::fromRgb(255,0,0,128));
+	newBrush->setStyle(Qt::FDiagPattern);
+	}
+      newAverageItem->setBackground(*newBrush);
+      d->OutputResultsTable->setItem(d->OutputResultsTable->rowCount()-1,i, newAverageItem);
+      }
+    }
+
+  d->averageComputed = true;
 }
