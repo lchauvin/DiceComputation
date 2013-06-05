@@ -238,7 +238,7 @@ void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
 
         if ((diceCoeff >= 0) && (i != j))
           {
-          item->setText(QString::number(diceCoeff));
+          item->setText(QString::number(diceCoeff,'g',3));
           }
         d->OutputResultsTable->setItem(i,j,item);
         }
@@ -311,9 +311,9 @@ void qSlicerDiceComputationModuleWidget::onAverageClicked()
       {
       if (average > 0)
 	{
-	newBrush->setColor((QColor::fromRgb(0,255,0,average*255)));
+	newBrush->setColor((QColor::fromRgb(126,30,156,average*255)));
 	newBrush->setStyle(Qt::SolidPattern);
-	newAverageItem->setText(QString::number(average));
+	newAverageItem->setText(QString::number(average,'f',3));
 	}
       else
 	{

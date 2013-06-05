@@ -88,16 +88,6 @@
          </spacer>
         </item>
         <item>
-         <widget class="QPushButton" name="AverageButton">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
-          <property name="text">
-           <string>Average</string>
-          </property>
-         </widget>
-        </item>
-        <item>
          <widget class="QPushButton" name="ComputeDiceCoeff">
           <property name="text">
            <string>Calculate DSC</string>
@@ -140,6 +130,30 @@
          <set>QAbstractItemView::NoEditTriggers</set>
         </property>
        </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <item>
+         <widget class="QPushButton" name="StdButton">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string>Standard Deviation</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="AverageButton">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string>Average</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
      </layout>
     </widget>
