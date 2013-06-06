@@ -48,6 +48,7 @@ public:
     void onLabelMapNumberChanged(double mapNumber);
     void onComputeDiceCoeffClicked();
     void onAverageClicked();
+    void onStdClicked();
     void onMRMLSceneChanged(vtkMRMLScene* newScene);
 
 protected:

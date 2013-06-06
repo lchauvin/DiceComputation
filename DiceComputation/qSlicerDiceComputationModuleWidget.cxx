@@ -20,6 +20,8 @@
 
   ==============================================================================*/
 
+#include <cmath>
+
 // Qt includes
 #include <QDebug>
 #include <QTimer>
@@ -90,6 +92,9 @@ void qSlicerDiceComputationModuleWidget::setup()
   connect(d->AverageButton, SIGNAL(clicked()),
 	  this, SLOT(onAverageClicked()));
 
+  connect(d->StdButton, SIGNAL(clicked()),
+	  this, SLOT(onStdClicked()));
+
   connect(this, SIGNAL(mrmlSceneChanged(vtkMRMLScene*)),
           this, SLOT(onMRMLSceneChanged(vtkMRMLScene*)));
 }
@@ -148,6 +153,9 @@ void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
 {
   Q_D(qSlicerDiceComputationModuleWidget);
 
+  // Turn off standard deviation
+  d->StdButton->setEnabled(false);
+  
   // Create list of scalar volume nodes
   d->labelMaps.clear();
 
@@ -326,4 +334,83 @@ void qSlicerDiceComputationModuleWidget::onAverageClicked()
     }
 
   d->averageComputed = true;
+
+  // Turn on standard deviation
+  d->StdButton->setEnabled(true);
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerDiceComputationModuleWidget::onStdClicked()
+{
+  Q_D(qSlicerDiceComputationModuleWidget);
+
+  if (!d->OutputResultsTable)
+    {
+    return;
+    }
+  
+  // Add new row in the table
+  d->OutputResultsTable->insertRow(d->OutputResultsTable->rowCount());
+  QTableWidgetItem* stdHeader = new QTableWidgetItem();
+  if (stdHeader)
+    {
+    stdHeader->setText("Standard Deviation");
+    d->OutputResultsTable->setVerticalHeaderItem(d->OutputResultsTable->rowCount()-1, stdHeader);
+    }
+  
+  // Compute averages
+  for (int i = 0; i < d->labelMapSize; i++)
+    {
+    int numberOfValues = 0;
+    double stdDeviation = 0.0;
+
+    // Get average
+    double average = d->OutputResultsTable->item(d->OutputResultsTable->rowCount()-2, i)->text().toDouble();
+
+    for (int j = 0; j < d->labelMapSize; j++)
+      {
+      if (i != j)
+	{
+	QTableWidgetItem* item = d->OutputResultsTable->item(j,i);
+	if (item && (item->background().style() != Qt::FDiagPattern))
+	  {
+	  double itemValue = item->text().toDouble();
+	  stdDeviation += std::pow((itemValue - average),2.0);
+	  ++numberOfValues;
+	  std::cerr << "Increase numberOfValues" << std::endl;
+	  }
+	}
+      }
+    if (numberOfValues > 0)
+      {
+      stdDeviation /= numberOfValues;
+      stdDeviation = std::sqrt(stdDeviation);
+      std::cerr << "Compute std: " << stdDeviation << std::endl;
+      }
+    else
+      {
+      stdDeviation = -1;
+      }
+    
+    // Create new item
+    QTableWidgetItem* newStdItem = new QTableWidgetItem();
+    QBrush* newBrush = new QBrush();
+    if (newStdItem && newBrush)
+      {
+      if (stdDeviation > 0)
+	{
+	newBrush->setColor((QColor::fromRgb(30,144,255,stdDeviation*255)));
+	newBrush->setStyle(Qt::SolidPattern);
+	newStdItem->setText(QString::number(stdDeviation,'f',3));
+	std::cerr << "Set std" << std::endl;
+	}
+      else
+	{
+	newBrush->setColor(QColor::fromRgb(255,0,0,128));
+	newBrush->setStyle(Qt::FDiagPattern);
+	}
+      newStdItem->setBackground(*newBrush);
+      d->OutputResultsTable->setItem(d->OutputResultsTable->rowCount()-1,i, newStdItem);
+      }
+    }
 }
