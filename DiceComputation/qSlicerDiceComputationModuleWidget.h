@@ -47,8 +47,11 @@ public:
   public slots:
     void onLabelMapNumberChanged(double mapNumber);
     void onComputeDiceCoeffClicked();
-    void onAverageClicked();
-    void onStdClicked();
+    void onComputeStatsClicked();
+    void computeAverage(int column);
+    void computeStdDev(int column);
+    void computeMin(int column);
+    void computeMax(int column);
     void onMRMLSceneChanged(vtkMRMLScene* newScene);
 
 protected:

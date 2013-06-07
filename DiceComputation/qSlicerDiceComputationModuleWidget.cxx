@@ -43,7 +43,6 @@ public:
   std::vector<std::vector<double> > resultsArray;
   std::vector<vtkMRMLScalarVolumeNode*> labelMaps;
   int labelMapSize;
-  bool averageComputed;
 };
 
 //-----------------------------------------------------------------------------
@@ -53,7 +52,6 @@ public:
 qSlicerDiceComputationModuleWidgetPrivate::qSlicerDiceComputationModuleWidgetPrivate()
 {
   this->labelMapSize = 0;
-  this->averageComputed = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -89,11 +87,8 @@ void qSlicerDiceComputationModuleWidget::setup()
   connect(d->ComputeDiceCoeff, SIGNAL(clicked()),
           this, SLOT(onComputeDiceCoeffClicked()));
 
-  connect(d->AverageButton, SIGNAL(clicked()),
-	  this, SLOT(onAverageClicked()));
-
-  connect(d->StdButton, SIGNAL(clicked()),
-	  this, SLOT(onStdClicked()));
+  connect(d->ComputeStatsButton, SIGNAL(clicked()),
+	  this, SLOT(onComputeStatsClicked()));
 
   connect(this, SIGNAL(mrmlSceneChanged(vtkMRMLScene*)),
           this, SLOT(onMRMLSceneChanged(vtkMRMLScene*)));
@@ -152,9 +147,6 @@ void qSlicerDiceComputationModuleWidget::onLabelMapNumberChanged(double newMapNu
 void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
 {
   Q_D(qSlicerDiceComputationModuleWidget);
-
-  // Turn off standard deviation
-  d->StdButton->setEnabled(false);
   
   // Create list of scalar volume nodes
   d->labelMaps.clear();
@@ -252,165 +244,320 @@ void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
         }
       }
     }
-
-  // Turn on/off average button if data are present in the table
-  d->AverageButton->setEnabled(d->OutputResultsTable->rowCount() != 0);
-
-  // Average not computed for these values
-  d->averageComputed = false;
 }
 
 //-----------------------------------------------------------------------------
-void qSlicerDiceComputationModuleWidget::onAverageClicked()
+void qSlicerDiceComputationModuleWidget::onComputeStatsClicked()
 {
   Q_D(qSlicerDiceComputationModuleWidget);
 
-  if (!d->OutputResultsTable)
+  if (!d->StatsTable)
     {
     return;
     }
 
-  // Average already computed for these values
-  if (d->averageComputed)
+  // Clear table
+  d->StatsTable->clear();
+  d->StatsTable->clearContents();
+  d->StatsTable->setRowCount(0);
+  d->StatsTable->setColumnCount(d->labelMapSize);
+
+  // Get checkbox states
+  bool averageChecked = d->AverageCheckbox->isChecked();
+  bool stdDevChecked  = d->StdDevCheckbox->isChecked();
+  bool minChecked     = d->MinCheckbox->isChecked();
+  bool maxChecked     = d->MaxCheckbox->isChecked();
+
+  // -- Compute average if checked
+  if (averageChecked || stdDevChecked)
     {
-    return;
+    // Add new row in the table
+    d->StatsTable->insertRow(d->StatsTable->rowCount());
+    QTableWidgetItem* averageHeader = new QTableWidgetItem();
+    if (averageHeader)
+      {
+      averageHeader->setText("Average");
+      d->StatsTable->setVerticalHeaderItem(0, averageHeader);
+      }
+
+    for (int i = 0; i < d->labelMapSize; i++)
+      {
+      this->computeAverage(i);
+      }
     }
 
-  // Add new row in the table
-  d->OutputResultsTable->insertRow(d->OutputResultsTable->rowCount());
-  QTableWidgetItem* averageHeader = new QTableWidgetItem();
-  if (averageHeader)
+  // -- Compute Standard Deviation if checked
+  if (stdDevChecked)
     {
-    averageHeader->setText("Average");
-    d->OutputResultsTable->setVerticalHeaderItem(d->OutputResultsTable->rowCount()-1, averageHeader);
-    }
-  
-  // Compute averages
-  for (int i = 0; i < d->labelMapSize; i++)
-    {
-    int numberOfValues = 0;
-    double average = 0;
-    for (int j = 0; j < d->labelMapSize; j++)
+    // Add new row in the table
+    d->StatsTable->insertRow(d->StatsTable->rowCount());
+    QTableWidgetItem* stdDevHeader = new QTableWidgetItem();
+    if (stdDevHeader)
       {
-      if (i != j)
-	{
-	QTableWidgetItem* item = d->OutputResultsTable->item(j,i);
-	if (item && (item->background().style() != Qt::FDiagPattern))
-	  {
-	  double itemValue = item->text().toDouble();
-	  average += itemValue;
-	  ++numberOfValues;
-	  }
-	}
-      }
-    if (numberOfValues > 0)
-      {
-      average /= numberOfValues;
-      }
-    else
-      {
-      average = -1;
+      stdDevHeader->setText("StdDev");
+      d->StatsTable->setVerticalHeaderItem(d->StatsTable->rowCount()-1, stdDevHeader);
       }
     
-    // Create new item
-    QTableWidgetItem* newAverageItem = new QTableWidgetItem();
-    QBrush* newBrush = new QBrush();
-    if (newAverageItem && newBrush)
+    for (int i = 0; i < d->labelMapSize; i++)
       {
-      if (average > 0)
-	{
-	newBrush->setColor((QColor::fromRgb(126,30,156,average*255)));
-	newBrush->setStyle(Qt::SolidPattern);
-	newAverageItem->setText(QString::number(average,'f',3));
-	}
-      else
-	{
-	newBrush->setColor(QColor::fromRgb(255,0,0,128));
-	newBrush->setStyle(Qt::FDiagPattern);
-	}
-      newAverageItem->setBackground(*newBrush);
-      d->OutputResultsTable->setItem(d->OutputResultsTable->rowCount()-1,i, newAverageItem);
+      this->computeStdDev(i);
       }
     }
 
-  d->averageComputed = true;
+  // -- Compute Min if checked
+  if (minChecked)
+    {
+    // Add new row in the table
+    d->StatsTable->insertRow(d->StatsTable->rowCount());
+    QTableWidgetItem* minHeader = new QTableWidgetItem();
+    if (minHeader)
+      {
+      minHeader->setText("Min");
+      d->StatsTable->setVerticalHeaderItem(d->StatsTable->rowCount()-1, minHeader);
+      }
 
-  // Turn on standard deviation
-  d->StdButton->setEnabled(true);
+    for (int i = 0; i < d->labelMapSize; i++)
+      {
+      this->computeMin(i);
+      }
+    }
+
+  // -- Compute Max if checked
+  if (maxChecked)
+    {
+    // Add new row in the table
+    d->StatsTable->insertRow(d->StatsTable->rowCount());
+    QTableWidgetItem* maxHeader = new QTableWidgetItem();
+    if (maxHeader)
+      {
+      maxHeader->setText("Max");
+      d->StatsTable->setVerticalHeaderItem(d->StatsTable->rowCount()-1, maxHeader);
+      }
+
+    for (int i = 0; i < d->labelMapSize; i++)
+      {
+      this->computeMax(i);
+      }
+    }
+
 }
 
 //-----------------------------------------------------------------------------
-void qSlicerDiceComputationModuleWidget::onStdClicked()
+void qSlicerDiceComputationModuleWidget::computeAverage(int column)
 {
   Q_D(qSlicerDiceComputationModuleWidget);
 
-  if (!d->OutputResultsTable)
+  if (!d->StatsTable || !d->OutputResultsTable)
     {
     return;
     }
-  
-  // Add new row in the table
-  d->OutputResultsTable->insertRow(d->OutputResultsTable->rowCount());
-  QTableWidgetItem* stdHeader = new QTableWidgetItem();
-  if (stdHeader)
+
+  int numberOfValues = 0;
+  double average = 0.0;
+  for (int row = 0; row < d->labelMapSize; row++)
     {
-    stdHeader->setText("Standard Deviation");
-    d->OutputResultsTable->setVerticalHeaderItem(d->OutputResultsTable->rowCount()-1, stdHeader);
+    if (column != row)
+      {
+      QTableWidgetItem* item = d->OutputResultsTable->item(row,column);
+      if (item && (item->background().style() != Qt::FDiagPattern))
+        {
+        double itemValue = item->text().toDouble();
+        average += itemValue;
+        ++numberOfValues;
+        }
+      }
+    }
+  if (numberOfValues > 0)
+    {
+    average /= numberOfValues;
+    }
+  else
+    {
+    average = -1;
     }
   
-  // Compute averages
-  for (int i = 0; i < d->labelMapSize; i++)
+  // Create new item
+  QTableWidgetItem* newAverageItem = new QTableWidgetItem();
+  QBrush* newBrush = new QBrush();
+  if (newAverageItem && newBrush)
     {
-    int numberOfValues = 0;
-    double stdDeviation = 0.0;
-
-    // Get average
-    double average = d->OutputResultsTable->item(d->OutputResultsTable->rowCount()-2, i)->text().toDouble();
-
-    for (int j = 0; j < d->labelMapSize; j++)
+    if (average > 0)
       {
-      if (i != j)
-	{
-	QTableWidgetItem* item = d->OutputResultsTable->item(j,i);
-	if (item && (item->background().style() != Qt::FDiagPattern))
-	  {
-	  double itemValue = item->text().toDouble();
-	  stdDeviation += std::pow((itemValue - average),2.0);
-	  ++numberOfValues;
-	  std::cerr << "Increase numberOfValues" << std::endl;
-	  }
-	}
-      }
-    if (numberOfValues > 0)
-      {
-      stdDeviation /= numberOfValues;
-      stdDeviation = std::sqrt(stdDeviation);
-      std::cerr << "Compute std: " << stdDeviation << std::endl;
+      newBrush->setColor((QColor::fromRgb(126,30,156,average*255)));
+      newBrush->setStyle(Qt::SolidPattern);
+      newAverageItem->setText(QString::number(average,'f',3));
       }
     else
       {
-      stdDeviation = -1;
+      newBrush->setColor(QColor::fromRgb(255,0,0,128));
+      newBrush->setStyle(Qt::FDiagPattern);
       }
+    newAverageItem->setBackground(*newBrush);
+    d->StatsTable->setItem(d->StatsTable->rowCount()-1,column, newAverageItem);
+    }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerDiceComputationModuleWidget::computeStdDev(int column)
+{
+  Q_D(qSlicerDiceComputationModuleWidget);
+
+  if (!d->StatsTable || !d->OutputResultsTable)
+    {
+    return;
+    }
     
-    // Create new item
-    QTableWidgetItem* newStdItem = new QTableWidgetItem();
-    QBrush* newBrush = new QBrush();
-    if (newStdItem && newBrush)
+  // Get average
+  double average = -1.0;
+  int numberOfValues = 0;
+  double stdDeviation = -1.0;
+
+  QTableWidgetItem* averageItem = d->StatsTable->item(0,column);
+  if (averageItem)
+    {
+    if (averageItem->background().style() != Qt::FDiagPattern)
       {
-      if (stdDeviation > 0)
-	{
-	newBrush->setColor((QColor::fromRgb(30,144,255,stdDeviation*255)));
-	newBrush->setStyle(Qt::SolidPattern);
-	newStdItem->setText(QString::number(stdDeviation,'f',3));
-	std::cerr << "Set std" << std::endl;
-	}
-      else
-	{
-	newBrush->setColor(QColor::fromRgb(255,0,0,128));
-	newBrush->setStyle(Qt::FDiagPattern);
-	}
-      newStdItem->setBackground(*newBrush);
-      d->OutputResultsTable->setItem(d->OutputResultsTable->rowCount()-1,i, newStdItem);
+      average = averageItem->text().toDouble();
       }
+    }
+
+  // Compute std dev
+  if (average > 0)
+    {
+    for (int row = 0; row < d->labelMapSize; row++)
+      {
+      if (column != row)
+        {
+        QTableWidgetItem* item = d->OutputResultsTable->item(row,column);
+        if (item && (item->background().style() != Qt::FDiagPattern))
+          {
+          if (stdDeviation < 0)
+            {
+            stdDeviation = 0.0;
+            }
+          double itemValue = item->text().toDouble();
+          stdDeviation += std::pow((itemValue - average),2.0);
+          ++numberOfValues;
+          }
+        }
+      }
+    }
+
+  if (numberOfValues > 0)
+    {
+    stdDeviation /= numberOfValues;
+    stdDeviation = std::sqrt(stdDeviation);
+    }
+  
+  // Create new item
+  QTableWidgetItem* newStdItem = new QTableWidgetItem();
+  QBrush* newBrush = new QBrush();
+  if (newStdItem && newBrush)
+    {
+    if (stdDeviation > 0)
+      {
+      newBrush->setColor((QColor::fromRgb(30,144,255,stdDeviation*255)));
+      newBrush->setStyle(Qt::SolidPattern);
+      newStdItem->setText(QString::number(stdDeviation,'f',3));
+      }
+    else
+      {
+      newBrush->setColor(QColor::fromRgb(255,0,0,128));
+      newBrush->setStyle(Qt::FDiagPattern);
+      }
+    newStdItem->setBackground(*newBrush);
+    d->StatsTable->setItem(d->StatsTable->rowCount()-1,column, newStdItem);
+    }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerDiceComputationModuleWidget::computeMin(int column)
+{
+  Q_D(qSlicerDiceComputationModuleWidget);
+
+  if (!d->StatsTable || !d->OutputResultsTable)
+    {
+    return;
+    }
+
+  double min = 999.0;
+
+  for (int row = 0; row < d->labelMapSize; row++)
+    {
+    if (column != row)
+      {
+      QTableWidgetItem* item = d->OutputResultsTable->item(row,column);
+      if (item && (item->background().style() != Qt::FDiagPattern))
+        {
+        double itemValue = item->text().toDouble();
+        min = (itemValue < min) ? itemValue : min; 
+        }
+      }
+    }
+
+ // Create new item
+  QTableWidgetItem* newMinItem = new QTableWidgetItem();
+  QBrush* newBrush = new QBrush();
+  if (newMinItem && newBrush)
+    {
+    if (min < 1.0 && min > 0.0)
+      {
+      newBrush->setColor((QColor::fromRgb(0,255,0,min*255)));
+      newBrush->setStyle(Qt::SolidPattern);
+      newMinItem->setText(QString::number(min,'f',3));
+      }
+    else
+      {
+      newBrush->setColor(QColor::fromRgb(255,0,0,128));
+      newBrush->setStyle(Qt::FDiagPattern);
+      }
+    newMinItem->setBackground(*newBrush);
+    d->StatsTable->setItem(d->StatsTable->rowCount()-1,column, newMinItem);
+    }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerDiceComputationModuleWidget::computeMax(int column)
+{
+  Q_D(qSlicerDiceComputationModuleWidget);
+
+  if (!d->StatsTable || !d->OutputResultsTable)
+    {
+    return;
+    }
+
+  double max = -999.0;
+
+  for (int row = 0; row < d->labelMapSize; row++)
+    {
+    if (column != row)
+      {
+      QTableWidgetItem* item = d->OutputResultsTable->item(row,column);
+      if (item && (item->background().style() != Qt::FDiagPattern))
+        {
+        double itemValue = item->text().toDouble();
+        max = (itemValue > max) ? itemValue : max; 
+        }
+      }
+    }
+
+ // Create new item
+  QTableWidgetItem* newMaxItem = new QTableWidgetItem();
+  QBrush* newBrush = new QBrush();
+  if (newMaxItem && newBrush)
+    {
+    if (max < 1.0 && max > 0.0)
+      {
+      newBrush->setColor((QColor::fromRgb(255,0,0,max*255)));
+      newBrush->setStyle(Qt::SolidPattern);
+      newMaxItem->setText(QString::number(max,'f',3));
+      }
+    else
+      {
+      newBrush->setColor(QColor::fromRgb(255,0,0,128));
+      newBrush->setStyle(Qt::FDiagPattern);
+      }
+    newMaxItem->setBackground(*newBrush);
+    d->StatsTable->setItem(d->StatsTable->rowCount()-1,column, newMaxItem);
     }
 }
