@@ -7,7 +7,7 @@ if(NOT Slicer_SOURCE_DIR)
   set(EXTENSION_CATEGORY "Examples")
   set(EXTENSION_CONTRIBUTORS "Laurent Chauvin (BWH)")
   set(EXTENSION_DESCRIPTION "Compute dice coefficient for multiple label maps")
-  set(EXTENSION_ICONURL "http://wiki.slicer.org/slicerWiki/images/5/5a/VisuaLine.png")
+  set(EXTENSION_ICONURL "http://wiki.slicer.org/slicerWiki/images/7/79/DiceSimilarityCoefficient.png")
   set(EXTENSION_SCREENSHOTURLS "http://www.slicer.org/slicerWiki/images/1/1d/Slicer4-DiceComputation-GUI.png")
 endif()
 
