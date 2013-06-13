@@ -32,6 +32,10 @@
 
 #include "vtkSlicerDiceComputationLogic.h"
 
+#include <vtkImageLabelChange.h>
+#include <vtkImageData.h>
+#include <vtkPointData.h>
+
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_ExtensionTemplate
 class qSlicerDiceComputationModuleWidgetPrivate: public Ui_qSlicerDiceComputationModuleWidget
@@ -42,6 +46,7 @@ public:
 
   std::vector<std::vector<double> > resultsArray;
   std::vector<vtkMRMLScalarVolumeNode*> labelMaps;
+  std::vector<vtkImageData*> STAPLEImages;
   int labelMapSize;
 };
 
@@ -84,8 +89,8 @@ void qSlicerDiceComputationModuleWidget::setup()
   connect(d->LabelMapNumberWidget, SIGNAL(valueChanged(double)),
           this, SLOT(onLabelMapNumberChanged(double)));
 
-  connect(d->ComputeDiceCoeff, SIGNAL(clicked()),
-          this, SLOT(onComputeDiceCoeffClicked()));
+  connect(d->ComputeButton, SIGNAL(clicked()),
+          this, SLOT(onComputeButtonClicked()));
 
   connect(d->ComputeStatsButton, SIGNAL(clicked()),
 	  this, SLOT(onComputeStatsClicked()));
@@ -144,13 +149,34 @@ void qSlicerDiceComputationModuleWidget::onLabelMapNumberChanged(double newMapNu
 }
 
 //-----------------------------------------------------------------------------
-void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
+void qSlicerDiceComputationModuleWidget::onComputeButtonClicked()
 {
   Q_D(qSlicerDiceComputationModuleWidget);
-  
+
+  // Check which statistics to compute
+  if (d->DiceRadioButton->isChecked())
+    {
+    this->computeDiceCoefficient();
+    }
+  else if(d->SensitivityRadioButton->isChecked())
+    {
+    this->computeSensitivity();
+    }
+  else if(d->SpecificityRadioButton->isChecked())
+    {
+    this->computeSpecificity();
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+bool qSlicerDiceComputationModuleWidget::findLabelMaps()
+{
+  Q_D(qSlicerDiceComputationModuleWidget);
+
   // Create list of scalar volume nodes
   d->labelMaps.clear();
-
+  
   for (int i = 0; i < d->LabelMapLayout->count(); i++)
     {
     QLayoutItem* child;
@@ -168,7 +194,7 @@ void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
   // Check at least 2 label maps have been selected
   int numberOfLabelMaps = 0;
   d->labelMapSize = d->labelMaps.size();
-
+  
   for (int i = 0; i < d->labelMapSize; i++)
     {
     if (d->labelMaps[i] != NULL)
@@ -182,13 +208,25 @@ void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
       break;
       }
     }
-
+  
   if (numberOfLabelMaps < 2)
+    {
+    return false;
+    }
+  
+  return true;
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerDiceComputationModuleWidget::computeDiceCoefficient()
+{
+  Q_D(qSlicerDiceComputationModuleWidget);
+  
+  if (!this->findLabelMaps())
     {
     return;
     }
-  
-
+   
   // Compute dice coefficients
   vtkSlicerDiceComputationLogic* dcLogic =
     vtkSlicerDiceComputationLogic::SafeDownCast(this->logic());
@@ -243,6 +281,60 @@ void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
         d->OutputResultsTable->setItem(i,j,item);
         }
       }
+    }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerDiceComputationModuleWidget::computeSensitivity()
+{
+  Q_D(qSlicerDiceComputationModuleWidget);
+  
+  if (!this->findLabelMaps())
+    {
+    return;
+    }
+
+  d->STAPLEImages.clear();
+  FilterType::Pointer filter = FilterType::New();
+  filter->SetForegroundValue(1);
+
+  for (int i = 0; i < d->labelMapSize; i++)
+    {
+    if (d->labelMaps[i] != NULL)
+      {
+      double* range = d->labelMaps[i]->GetImageData()->GetPointData()->GetScalars()->GetRange(0);
+
+      if (range[1] != 1)
+	{
+	// Change label values to 1
+	vtkSmartPointer<vtkImageLabelChange> labelChanger
+	  = vtkSmartPointer<vtkImageLabelChange>::New();
+	vtkSmartPointer<vtkImageData> tmpData
+	  = vtkSmartPointer<vtkImageData>::New();
+	labelChanger->SetInput(d->labelMaps[i]->GetImageData());
+	labelChanger->SetOutput(tmpData.GetPointer());
+	labelChanger->SetInputLabel(range[1]);
+	labelChanger->SetOutputLabel(1);
+	labelChanger->Update();
+	d->STAPLEImages.push_back(tmpData.GetPointer());
+	}
+      
+      // TODO: Set filter inputs here
+      // Need to convert from VTK to ITK first
+      }
+    }
+  filter->UpdateLargestPossibleRegion();
+  
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerDiceComputationModuleWidget::computeSpecificity()
+{
+  Q_D(qSlicerDiceComputationModuleWidget);
+  
+  if (!this->findLabelMaps())
+    {
+    return;
     }
 }
 
