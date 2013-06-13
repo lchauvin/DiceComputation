@@ -381,7 +381,7 @@ void qSlicerDiceComputationModuleWidget::computeAverage(int column)
   QBrush* newBrush = new QBrush();
   if (newAverageItem && newBrush)
     {
-    if (average > 0)
+    if (average >= 0)
       {
       newBrush->setColor((QColor::fromRgb(126,30,156,average*255)));
       newBrush->setStyle(Qt::SolidPattern);
@@ -454,7 +454,7 @@ void qSlicerDiceComputationModuleWidget::computeStdDev(int column)
   QBrush* newBrush = new QBrush();
   if (newStdItem && newBrush)
     {
-    if (stdDeviation > 0)
+    if (stdDeviation >= 0)
       {
       newBrush->setColor((QColor::fromRgb(30,144,255,stdDeviation*255)));
       newBrush->setStyle(Qt::SolidPattern);
@@ -500,7 +500,7 @@ void qSlicerDiceComputationModuleWidget::computeMin(int column)
   QBrush* newBrush = new QBrush();
   if (newMinItem && newBrush)
     {
-    if (min < 1.0 && min > 0.0)
+    if (min <= 1.0 && min >= 0.0)
       {
       newBrush->setColor((QColor::fromRgb(0,255,0,min*255)));
       newBrush->setStyle(Qt::SolidPattern);
@@ -546,7 +546,7 @@ void qSlicerDiceComputationModuleWidget::computeMax(int column)
   QBrush* newBrush = new QBrush();
   if (newMaxItem && newBrush)
     {
-    if (max < 1.0 && max > 0.0)
+    if (max <= 1.0 && max >= 0.0)
       {
       newBrush->setColor((QColor::fromRgb(255,0,0,max*255)));
       newBrush->setStyle(Qt::SolidPattern);
