@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>323</width>
-    <height>407</height>
+    <width>357</width>
+    <height>463</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -128,6 +128,39 @@
     </widget>
    </item>
    <item>
+    <widget class="ctkCollapsibleButton" name="CropFrame">
+     <property name="text">
+      <string>Crop</string>
+     </property>
+     <property name="collapsed">
+      <bool>true</bool>
+     </property>
+     <property name="contentsFrameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_7">
+      <item>
+       <widget class="QGroupBox" name="CropCheckbox">
+        <property name="title">
+         <string>Crop</string>
+        </property>
+        <property name="checkable">
+         <bool>true</bool>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_8">
+         <item>
+          <widget class="qMRMLAnnotationROIWidget" name="RoiWidget"/>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
     <widget class="ctkCollapsibleButton" name="OutputFrame">
      <property name="text">
       <string>Results</string>
@@ -227,6 +260,11 @@
  </widget>
  <customwidgets>
   <customwidget>
+   <class>qMRMLAnnotationROIWidget</class>
+   <extends>QWidget</extends>
+   <header>qMRMLAnnotationROIWidget.h</header>
+  </customwidget>
+  <customwidget>
    <class>qSlicerWidget</class>
    <extends>QWidget</extends>
    <header>qSlicerWidget.h</header>
@@ -244,6 +282,9 @@
    <header>ctkSpinBox.h</header>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="../qSlicerDiceComputationModule.qrc"/>
+  <include location="../../../../../Slicer4/Slicer/Modules/Loadable/Annotations/Resources/qSlicerAnnotationModule.qrc"/>
+ </resources>
  <connections/>
 </ui>

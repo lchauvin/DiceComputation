@@ -27,7 +27,10 @@
 #include <QTimer>
 
 // SlicerQt includes
+#include "qSlicerAbstractCoreModule.h"
+#include "qSlicerCoreApplication.h"
 #include "qSlicerDiceComputationModuleWidget.h"
+#include "qSlicerModuleManager.h"
 #include "ui_qSlicerDiceComputationModuleWidget.h"
 
 #include "vtkSlicerDiceComputationLogic.h"
@@ -35,6 +38,9 @@
 #include <vtkImageLabelChange.h>
 #include <vtkImageData.h>
 #include <vtkPointData.h>
+
+#include <vtkMRMLAnnotationROINode.h>
+#include <vtkSlicerCropVolumeLogic.h>
 
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_ExtensionTemplate
@@ -48,6 +54,8 @@ public:
   std::vector<vtkMRMLScalarVolumeNode*> labelMaps;
   std::vector<vtkImageData*> STAPLEImages;
   int labelMapSize;
+  vtkMRMLAnnotationROINode* roiNode;
+  vtkSlicerCropVolumeLogic* cropLogic;
 };
 
 //-----------------------------------------------------------------------------
@@ -57,11 +65,16 @@ public:
 qSlicerDiceComputationModuleWidgetPrivate::qSlicerDiceComputationModuleWidgetPrivate()
 {
   this->labelMapSize = 0;
+  this->roiNode = vtkMRMLAnnotationROINode::New();
 }
 
 //-----------------------------------------------------------------------------
 qSlicerDiceComputationModuleWidgetPrivate::~qSlicerDiceComputationModuleWidgetPrivate()
 {
+  if (this->roiNode)
+    {
+    this->roiNode->Delete();
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -86,6 +99,10 @@ void qSlicerDiceComputationModuleWidget::setup()
   d->setupUi(this);
   this->Superclass::setup();
 
+  // Hide STAPLE checkboxes
+  d->SensitivityRadioButton->hide();
+  d->SpecificityRadioButton->hide();
+
   connect(d->LabelMapNumberWidget, SIGNAL(valueChanged(double)),
           this, SLOT(onLabelMapNumberChanged(double)));
 
@@ -94,6 +111,9 @@ void qSlicerDiceComputationModuleWidget::setup()
 
   connect(d->ComputeStatsButton, SIGNAL(clicked()),
 	  this, SLOT(onComputeStatsClicked()));
+
+  connect(d->CropCheckbox, SIGNAL(toggled(bool)),
+	  this, SLOT(onCropToggled(bool)));
 
   connect(this, SIGNAL(mrmlSceneChanged(vtkMRMLScene*)),
           this, SLOT(onMRMLSceneChanged(vtkMRMLScene*)));
@@ -106,6 +126,29 @@ void qSlicerDiceComputationModuleWidget::onMRMLSceneChanged(vtkMRMLScene* newSce
 
   // 2 widgets to start
   d->LabelMapNumberWidget->setValue(2);
+
+  if (!d->roiNode->GetScene())
+    {
+    d->roiNode->Initialize(newScene);
+    }
+
+  // Set crop widget
+  if (d->roiNode && d->RoiWidget)
+    {
+    d->RoiWidget->setMRMLAnnotationROINode(d->roiNode);
+    d->RoiWidget->setDisplayClippingBox(false);
+    d->RoiWidget->setEnabled(0);
+    }
+
+  // Get crop logic
+  qSlicerAbstractCoreModule* cropVolumeModule =
+    qSlicerCoreApplication::application()->moduleManager()->module("CropVolume");
+  if (cropVolumeModule)
+    {
+    d->cropLogic = 
+      vtkSlicerCropVolumeLogic::SafeDownCast(cropVolumeModule->logic());
+    }
+  
 }
 
 //-----------------------------------------------------------------------------
@@ -186,7 +229,28 @@ bool qSlicerDiceComputationModuleWidget::findLabelMaps()
         = dynamic_cast<qSlicerDiceComputationLabelMapSelectorWidget*>(child->widget());
       if (tmpWidget)
         {
-        d->labelMaps.push_back(tmpWidget->getSelectedNode());
+	vtkMRMLScalarVolumeNode* currentNode 
+	  = tmpWidget->getSelectedNode();
+	if (d->CropCheckbox->isChecked() && d->cropLogic && d->RoiWidget->mrmlROINode())
+	  {
+	  vtkSmartPointer<vtkMRMLScalarVolumeNode> croppedVolume
+	    = vtkSmartPointer<vtkMRMLScalarVolumeNode>::New();
+	  d->cropLogic->CropVoxelBased(d->RoiWidget->mrmlROINode(), currentNode, croppedVolume.GetPointer());
+	  croppedVolume->LabelMapOn();
+	  if (this->mrmlScene())
+	    {
+	    this->mrmlScene()->AddNode(croppedVolume.GetPointer());
+	    }
+	  std::stringstream croppedName;
+	  croppedName << currentNode->GetName() << "_cropped";
+	  croppedVolume->SetName(croppedName.str().c_str());
+	  d->labelMaps.push_back(croppedVolume.GetPointer());
+	  tmpWidget->setCurrentNode(croppedVolume.GetPointer());
+	  }
+	else
+	  {
+	  d->labelMaps.push_back(currentNode);
+	  }
         }
       }
     }
@@ -653,3 +717,25 @@ void qSlicerDiceComputationModuleWidget::computeMax(int column)
     d->StatsTable->setItem(d->StatsTable->rowCount()-1,column, newMaxItem);
     }
 }
+
+//-----------------------------------------------------------------------------
+void qSlicerDiceComputationModuleWidget::onCropToggled(bool toggle)
+{
+  Q_D(qSlicerDiceComputationModuleWidget);
+
+  if (toggle && d->roiNode && d->RoiWidget)
+    {
+    if (!d->RoiWidget->mrmlROINode())
+      {
+      d->RoiWidget->setMRMLAnnotationROINode(d->roiNode);
+      }
+    d->RoiWidget->setDisplayClippingBox(true);
+    d->RoiWidget->setInteractiveMode(true);
+    }
+  else
+    {
+    d->RoiWidget->setDisplayClippingBox(false);
+    }
+  d->RoiWidget->setEnabled(toggle);
+}
+

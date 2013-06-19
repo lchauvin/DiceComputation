@@ -51,6 +51,7 @@ public:
   void setMRMLScene(vtkMRMLScene* newScene);
   void setPosition(int itemPosition);
   vtkMRMLScalarVolumeNode* getSelectedNode();
+  void setCurrentNode(vtkMRMLNode* node);
 
 protected slots:
   void onNodeChanged(vtkMRMLNode* newNode);
