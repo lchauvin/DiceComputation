@@ -23,6 +23,7 @@
 #include <cmath>
 
 // Qt includes
+#include <QFileDialog>
 #include <QDebug>
 #include <QTimer>
 
@@ -114,6 +115,12 @@ void qSlicerDiceComputationModuleWidget::setup()
 
   connect(d->CropCheckbox, SIGNAL(toggled(bool)),
 	  this, SLOT(onCropToggled(bool)));
+
+  connect(d->ExportDiceButton, SIGNAL(clicked()),
+	  this, SLOT(onExportDiceClicked()));
+
+  connect(d->ExportStatisticsButton, SIGNAL(clicked()),
+	  this, SLOT(onExportStatisticsClicked()));
 
   connect(this, SIGNAL(mrmlSceneChanged(vtkMRMLScene*)),
           this, SLOT(onMRMLSceneChanged(vtkMRMLScene*)));
@@ -219,6 +226,7 @@ bool qSlicerDiceComputationModuleWidget::findLabelMaps()
 
   // Create list of scalar volume nodes
   d->labelMaps.clear();
+  d->labelMapSize = 0;
   
   for (int i = 0; i < d->LabelMapLayout->count(); i++)
     {
@@ -739,3 +747,104 @@ void qSlicerDiceComputationModuleWidget::onCropToggled(bool toggle)
   d->RoiWidget->setEnabled(toggle);
 }
 
+//-----------------------------------------------------------------------------
+void qSlicerDiceComputationModuleWidget::onExportDiceClicked()
+{
+  Q_D(qSlicerDiceComputationModuleWidget);
+
+  QString fileName = QFileDialog::getSaveFileName(this, tr("Open File"),
+                                                 "",
+                                                 tr("CSV (*.csv)"));
+  ofstream myFile;
+  myFile.open (fileName.toStdString().c_str(), ios::out | ios::ate | ios::app) ;
+
+  if (myFile.is_open())
+    {
+    std::stringstream currentLine;
+    currentLine << ",";
+    for (int i = -1; i < d->labelMapSize; i++)
+      {
+      if (i >= 0)
+	{
+	currentLine.str(std::string());
+	currentLine << "LabelMap " << i << ",";
+	}
+      for (int j = 0; j < d->labelMapSize; j++)
+	{
+	if (i == -1)
+	  {
+	  // Header
+	  currentLine << "LabelMap " << j << ",";
+	  }
+	else
+	  {
+	  if (i == j)
+	    {
+	    currentLine << "-,";
+	    }
+	  else
+	    {
+	    QTableWidgetItem* item = d->OutputResultsTable->item(i,j);
+	    if (item)
+	      {
+	      currentLine << item->text().toDouble() << ",";
+	      }
+	    }
+	  }
+	}
+      currentLine << std::endl;
+      myFile << currentLine.str();
+      }
+    myFile.close();
+    }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerDiceComputationModuleWidget::onExportStatisticsClicked()
+{
+  Q_D(qSlicerDiceComputationModuleWidget);
+
+  QString fileName = QFileDialog::getSaveFileName(this, tr("Open File"),
+                                                 "",
+                                                 tr("CSV (*.csv)"));
+  ofstream myFile;
+  myFile.open (fileName.toStdString().c_str(), ios::out | ios::ate | ios::app) ;
+
+  if (myFile.is_open())
+    {
+    std::stringstream currentLine;
+    currentLine << ",";
+    for (int i = -1; i < d->StatsTable->rowCount(); i++)
+      {
+      if (i >= 0)
+	{
+	currentLine.str(std::string());
+	QTableWidgetItem* headerItem =
+	  d->StatsTable->verticalHeaderItem(i);
+	if (headerItem)
+	  {
+	  currentLine << headerItem->text().toStdString().c_str() << ",";
+	  }
+	}
+      for (int j = 0; j < d->labelMapSize; j++)
+	{
+	if (i == -1)
+	  {
+	  // Header
+	  currentLine << "LabelMap " << j << ",";
+	  }
+	else
+	  {
+	  QTableWidgetItem* item = d->StatsTable->item(i,j);
+	  if (item)
+	    {
+	    currentLine << item->text().toDouble() << ",";
+	    }
+	  }
+	}
+      currentLine << std::endl;
+      myFile << currentLine.str();
+      }
+    myFile.close();
+    }
+}

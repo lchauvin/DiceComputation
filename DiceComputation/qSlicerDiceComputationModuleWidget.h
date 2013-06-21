@@ -64,6 +64,9 @@ public:
     void computeMax(int column);
     void onMRMLSceneChanged(vtkMRMLScene* newScene);
     void onCropToggled(bool toggle);
+    void onExportDiceClicked();
+    void onExportStatisticsClicked();
+
 
 protected:
     QScopedPointer<qSlicerDiceComputationModuleWidgetPrivate> d_ptr;
