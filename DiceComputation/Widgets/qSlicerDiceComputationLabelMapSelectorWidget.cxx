@@ -132,6 +132,15 @@ vtkMRMLScalarVolumeNode* qSlicerDiceComputationLabelMapSelectorWidget
   return d->nodeSelected;
 }
 
+//-----------------------------------------------------------------------------
+void qSlicerDiceComputationLabelMapSelectorWidget
+::setCurrentNode(vtkMRMLNode* node)
+{
+  Q_D(qSlicerDiceComputationLabelMapSelectorWidget);
+
+  d->LabelMapSelector->setCurrentNode(node);
+}
+
 
 //-----------------------------------------------------------------------------
 void qSlicerDiceComputationLabelMapSelectorWidget

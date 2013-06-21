@@ -23,14 +23,25 @@
 #include <cmath>
 
 // Qt includes
+#include <QFileDialog>
 #include <QDebug>
 #include <QTimer>
 
 // SlicerQt includes
+#include "qSlicerAbstractCoreModule.h"
+#include "qSlicerCoreApplication.h"
 #include "qSlicerDiceComputationModuleWidget.h"
+#include "qSlicerModuleManager.h"
 #include "ui_qSlicerDiceComputationModuleWidget.h"
 
 #include "vtkSlicerDiceComputationLogic.h"
+
+#include <vtkImageLabelChange.h>
+#include <vtkImageData.h>
+#include <vtkPointData.h>
+
+#include <vtkMRMLAnnotationROINode.h>
+#include <vtkSlicerCropVolumeLogic.h>
 
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_ExtensionTemplate
@@ -42,7 +53,10 @@ public:
 
   std::vector<std::vector<double> > resultsArray;
   std::vector<vtkMRMLScalarVolumeNode*> labelMaps;
+  std::vector<vtkImageData*> STAPLEImages;
   int labelMapSize;
+  vtkMRMLAnnotationROINode* roiNode;
+  vtkSlicerCropVolumeLogic* cropLogic;
 };
 
 //-----------------------------------------------------------------------------
@@ -52,11 +66,16 @@ public:
 qSlicerDiceComputationModuleWidgetPrivate::qSlicerDiceComputationModuleWidgetPrivate()
 {
   this->labelMapSize = 0;
+  this->roiNode = vtkMRMLAnnotationROINode::New();
 }
 
 //-----------------------------------------------------------------------------
 qSlicerDiceComputationModuleWidgetPrivate::~qSlicerDiceComputationModuleWidgetPrivate()
 {
+  if (this->roiNode)
+    {
+    this->roiNode->Delete();
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -81,14 +100,27 @@ void qSlicerDiceComputationModuleWidget::setup()
   d->setupUi(this);
   this->Superclass::setup();
 
+  // Hide STAPLE checkboxes
+  d->SensitivityRadioButton->hide();
+  d->SpecificityRadioButton->hide();
+
   connect(d->LabelMapNumberWidget, SIGNAL(valueChanged(double)),
           this, SLOT(onLabelMapNumberChanged(double)));
 
-  connect(d->ComputeDiceCoeff, SIGNAL(clicked()),
-          this, SLOT(onComputeDiceCoeffClicked()));
+  connect(d->ComputeButton, SIGNAL(clicked()),
+          this, SLOT(onComputeButtonClicked()));
 
   connect(d->ComputeStatsButton, SIGNAL(clicked()),
 	  this, SLOT(onComputeStatsClicked()));
+
+  connect(d->CropCheckbox, SIGNAL(toggled(bool)),
+	  this, SLOT(onCropToggled(bool)));
+
+  connect(d->ExportDiceButton, SIGNAL(clicked()),
+	  this, SLOT(onExportDiceClicked()));
+
+  connect(d->ExportStatisticsButton, SIGNAL(clicked()),
+	  this, SLOT(onExportStatisticsClicked()));
 
   connect(this, SIGNAL(mrmlSceneChanged(vtkMRMLScene*)),
           this, SLOT(onMRMLSceneChanged(vtkMRMLScene*)));
@@ -101,6 +133,29 @@ void qSlicerDiceComputationModuleWidget::onMRMLSceneChanged(vtkMRMLScene* newSce
 
   // 2 widgets to start
   d->LabelMapNumberWidget->setValue(2);
+
+  if (!d->roiNode->GetScene())
+    {
+    d->roiNode->Initialize(newScene);
+    }
+
+  // Set crop widget
+  if (d->roiNode && d->RoiWidget)
+    {
+    d->RoiWidget->setMRMLAnnotationROINode(d->roiNode);
+    d->RoiWidget->setDisplayClippingBox(false);
+    d->RoiWidget->setEnabled(0);
+    }
+
+  // Get crop logic
+  qSlicerAbstractCoreModule* cropVolumeModule =
+    qSlicerCoreApplication::application()->moduleManager()->module("CropVolume");
+  if (cropVolumeModule)
+    {
+    d->cropLogic = 
+      vtkSlicerCropVolumeLogic::SafeDownCast(cropVolumeModule->logic());
+    }
+  
 }
 
 //-----------------------------------------------------------------------------
@@ -144,13 +199,35 @@ void qSlicerDiceComputationModuleWidget::onLabelMapNumberChanged(double newMapNu
 }
 
 //-----------------------------------------------------------------------------
-void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
+void qSlicerDiceComputationModuleWidget::onComputeButtonClicked()
 {
   Q_D(qSlicerDiceComputationModuleWidget);
-  
+
+  // Check which statistics to compute
+  if (d->DiceRadioButton->isChecked())
+    {
+    this->computeDiceCoefficient();
+    }
+  else if(d->SensitivityRadioButton->isChecked())
+    {
+    this->computeSensitivity();
+    }
+  else if(d->SpecificityRadioButton->isChecked())
+    {
+    this->computeSpecificity();
+    }
+}
+
+
+//-----------------------------------------------------------------------------
+bool qSlicerDiceComputationModuleWidget::findLabelMaps()
+{
+  Q_D(qSlicerDiceComputationModuleWidget);
+
   // Create list of scalar volume nodes
   d->labelMaps.clear();
-
+  d->labelMapSize = 0;
+  
   for (int i = 0; i < d->LabelMapLayout->count(); i++)
     {
     QLayoutItem* child;
@@ -160,7 +237,28 @@ void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
         = dynamic_cast<qSlicerDiceComputationLabelMapSelectorWidget*>(child->widget());
       if (tmpWidget)
         {
-        d->labelMaps.push_back(tmpWidget->getSelectedNode());
+	vtkMRMLScalarVolumeNode* currentNode 
+	  = tmpWidget->getSelectedNode();
+	if (d->CropCheckbox->isChecked() && d->cropLogic && d->RoiWidget->mrmlROINode())
+	  {
+	  vtkSmartPointer<vtkMRMLScalarVolumeNode> croppedVolume
+	    = vtkSmartPointer<vtkMRMLScalarVolumeNode>::New();
+	  d->cropLogic->CropVoxelBased(d->RoiWidget->mrmlROINode(), currentNode, croppedVolume.GetPointer());
+	  croppedVolume->LabelMapOn();
+	  if (this->mrmlScene())
+	    {
+	    this->mrmlScene()->AddNode(croppedVolume.GetPointer());
+	    }
+	  std::stringstream croppedName;
+	  croppedName << currentNode->GetName() << "_cropped";
+	  croppedVolume->SetName(croppedName.str().c_str());
+	  d->labelMaps.push_back(croppedVolume.GetPointer());
+	  tmpWidget->setCurrentNode(croppedVolume.GetPointer());
+	  }
+	else
+	  {
+	  d->labelMaps.push_back(currentNode);
+	  }
         }
       }
     }
@@ -168,7 +266,7 @@ void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
   // Check at least 2 label maps have been selected
   int numberOfLabelMaps = 0;
   d->labelMapSize = d->labelMaps.size();
-
+  
   for (int i = 0; i < d->labelMapSize; i++)
     {
     if (d->labelMaps[i] != NULL)
@@ -182,13 +280,25 @@ void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
       break;
       }
     }
-
+  
   if (numberOfLabelMaps < 2)
+    {
+    return false;
+    }
+  
+  return true;
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerDiceComputationModuleWidget::computeDiceCoefficient()
+{
+  Q_D(qSlicerDiceComputationModuleWidget);
+  
+  if (!this->findLabelMaps())
     {
     return;
     }
-  
-
+   
   // Compute dice coefficients
   vtkSlicerDiceComputationLogic* dcLogic =
     vtkSlicerDiceComputationLogic::SafeDownCast(this->logic());
@@ -243,6 +353,60 @@ void qSlicerDiceComputationModuleWidget::onComputeDiceCoeffClicked()
         d->OutputResultsTable->setItem(i,j,item);
         }
       }
+    }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerDiceComputationModuleWidget::computeSensitivity()
+{
+  Q_D(qSlicerDiceComputationModuleWidget);
+  
+  if (!this->findLabelMaps())
+    {
+    return;
+    }
+
+  d->STAPLEImages.clear();
+  FilterType::Pointer filter = FilterType::New();
+  filter->SetForegroundValue(1);
+
+  for (int i = 0; i < d->labelMapSize; i++)
+    {
+    if (d->labelMaps[i] != NULL)
+      {
+      double* range = d->labelMaps[i]->GetImageData()->GetPointData()->GetScalars()->GetRange(0);
+
+      if (range[1] != 1)
+	{
+	// Change label values to 1
+	vtkSmartPointer<vtkImageLabelChange> labelChanger
+	  = vtkSmartPointer<vtkImageLabelChange>::New();
+	vtkSmartPointer<vtkImageData> tmpData
+	  = vtkSmartPointer<vtkImageData>::New();
+	labelChanger->SetInput(d->labelMaps[i]->GetImageData());
+	labelChanger->SetOutput(tmpData.GetPointer());
+	labelChanger->SetInputLabel(range[1]);
+	labelChanger->SetOutputLabel(1);
+	labelChanger->Update();
+	d->STAPLEImages.push_back(tmpData.GetPointer());
+	}
+      
+      // TODO: Set filter inputs here
+      // Need to convert from VTK to ITK first
+      }
+    }
+  filter->UpdateLargestPossibleRegion();
+  
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerDiceComputationModuleWidget::computeSpecificity()
+{
+  Q_D(qSlicerDiceComputationModuleWidget);
+  
+  if (!this->findLabelMaps())
+    {
+    return;
     }
 }
 
@@ -559,5 +723,128 @@ void qSlicerDiceComputationModuleWidget::computeMax(int column)
       }
     newMaxItem->setBackground(*newBrush);
     d->StatsTable->setItem(d->StatsTable->rowCount()-1,column, newMaxItem);
+    }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerDiceComputationModuleWidget::onCropToggled(bool toggle)
+{
+  Q_D(qSlicerDiceComputationModuleWidget);
+
+  if (toggle && d->roiNode && d->RoiWidget)
+    {
+    if (!d->RoiWidget->mrmlROINode())
+      {
+      d->RoiWidget->setMRMLAnnotationROINode(d->roiNode);
+      }
+    d->RoiWidget->setDisplayClippingBox(true);
+    d->RoiWidget->setInteractiveMode(true);
+    }
+  else
+    {
+    d->RoiWidget->setDisplayClippingBox(false);
+    }
+  d->RoiWidget->setEnabled(toggle);
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerDiceComputationModuleWidget::onExportDiceClicked()
+{
+  Q_D(qSlicerDiceComputationModuleWidget);
+
+  QString fileName = QFileDialog::getSaveFileName(this, tr("Open File"),
+                                                 "",
+                                                 tr("CSV (*.csv)"));
+  ofstream myFile;
+  myFile.open (fileName.toStdString().c_str(), ios::out | ios::ate | ios::app) ;
+
+  if (myFile.is_open())
+    {
+    std::stringstream currentLine;
+    currentLine << ",";
+    for (int i = -1; i < d->labelMapSize; i++)
+      {
+      if (i >= 0)
+	{
+	currentLine.str(std::string());
+	currentLine << "LabelMap " << i << ",";
+	}
+      for (int j = 0; j < d->labelMapSize; j++)
+	{
+	if (i == -1)
+	  {
+	  // Header
+	  currentLine << "LabelMap " << j << ",";
+	  }
+	else
+	  {
+	  if (i == j)
+	    {
+	    currentLine << "-,";
+	    }
+	  else
+	    {
+	    QTableWidgetItem* item = d->OutputResultsTable->item(i,j);
+	    if (item)
+	      {
+	      currentLine << item->text().toDouble() << ",";
+	      }
+	    }
+	  }
+	}
+      currentLine << std::endl;
+      myFile << currentLine.str();
+      }
+    myFile.close();
+    }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerDiceComputationModuleWidget::onExportStatisticsClicked()
+{
+  Q_D(qSlicerDiceComputationModuleWidget);
+
+  QString fileName = QFileDialog::getSaveFileName(this, tr("Open File"),
+                                                 "",
+                                                 tr("CSV (*.csv)"));
+  ofstream myFile;
+  myFile.open (fileName.toStdString().c_str(), ios::out | ios::ate | ios::app) ;
+
+  if (myFile.is_open())
+    {
+    std::stringstream currentLine;
+    currentLine << ",";
+    for (int i = -1; i < d->StatsTable->rowCount(); i++)
+      {
+      if (i >= 0)
+	{
+	currentLine.str(std::string());
+	QTableWidgetItem* headerItem =
+	  d->StatsTable->verticalHeaderItem(i);
+	if (headerItem)
+	  {
+	  currentLine << headerItem->text().toStdString().c_str() << ",";
+	  }
+	}
+      for (int j = 0; j < d->labelMapSize; j++)
+	{
+	if (i == -1)
+	  {
+	  // Header
+	  currentLine << "LabelMap " << j << ",";
+	  }
+	else
+	  {
+	  QTableWidgetItem* item = d->StatsTable->item(i,j);
+	  if (item)
+	    {
+	    currentLine << item->text().toDouble() << ",";
+	    }
+	  }
+	}
+      currentLine << std::endl;
+      myFile << currentLine.str();
+      }
+    myFile.close();
     }
 }

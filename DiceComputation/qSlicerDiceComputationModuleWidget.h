@@ -29,6 +29,9 @@
 
 #include "qSlicerDiceComputationModuleExport.h"
 
+#include <itkImage.h>
+#include <itkSTAPLEImageFilter.h>
+
 class qSlicerDiceComputationModuleWidgetPrivate;
 class vtkMRMLNode;
 
@@ -41,23 +44,35 @@ public qSlicerAbstractModuleWidget
 public:
 
   typedef qSlicerAbstractModuleWidget Superclass;
+  typedef itk::Image<short,3>   ImageType;
+  typedef itk::Image<float,3>   OutputImageType;
+  typedef itk::STAPLEImageFilter<ImageType,OutputImageType> FilterType;
+
   qSlicerDiceComputationModuleWidget(QWidget *parent=0);
   virtual ~qSlicerDiceComputationModuleWidget();
 
   public slots:
     void onLabelMapNumberChanged(double mapNumber);
-    void onComputeDiceCoeffClicked();
+    void onComputeButtonClicked();
+    void computeDiceCoefficient();
+    void computeSensitivity();
+    void computeSpecificity();
     void onComputeStatsClicked();
     void computeAverage(int column);
     void computeStdDev(int column);
     void computeMin(int column);
     void computeMax(int column);
     void onMRMLSceneChanged(vtkMRMLScene* newScene);
+    void onCropToggled(bool toggle);
+    void onExportDiceClicked();
+    void onExportStatisticsClicked();
+
 
 protected:
     QScopedPointer<qSlicerDiceComputationModuleWidgetPrivate> d_ptr;
 
     virtual void setup();
+    bool findLabelMaps();
 
 private:
     Q_DECLARE_PRIVATE(qSlicerDiceComputationModuleWidget);
