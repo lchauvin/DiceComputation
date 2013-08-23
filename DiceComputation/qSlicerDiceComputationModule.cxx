@@ -84,7 +84,7 @@ QString qSlicerDiceComputationModule::acknowledgementText()const
 QStringList qSlicerDiceComputationModule::contributors()const
 {
   QStringList moduleContributors;
-  moduleContributors << QString("Laurent Chauvin (BWH)");
+  moduleContributors << QString("Laurent Chauvin (BWH), Sonia Pujol (BWH)");
   return moduleContributors;
 }
 
