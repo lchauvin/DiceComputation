@@ -33,7 +33,7 @@
          </widget>
         </item>
         <item>
-         <widget class="ctkSpinBox" name="LabelMapNumberWidget">
+         <widget class="ctkDoubleSpinBox" name="LabelMapNumberWidget">
           <property name="decimals">
            <number>0</number>
           </property>
@@ -318,9 +318,9 @@
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>ctkSpinBox</class>
+   <class>ctkDoubleSpinBox</class>
    <extends>QWidget</extends>
-   <header>ctkSpinBox.h</header>
+   <header>ctkDoubleSpinBox.h</header>
   </customwidget>
  </customwidgets>
  <resources>
