@@ -27,6 +27,7 @@
 #include <QWidget>
 
 // MRML includes
+#include "vtkMRMLModelNode.h"
 #include "vtkMRMLScene.h"
 #include "vtkMRMLScalarVolumeNode.h"
 
@@ -50,7 +51,7 @@ public:
 
   void setMRMLScene(vtkMRMLScene* newScene);
   void setPosition(int itemPosition);
-  vtkMRMLScalarVolumeNode* getSelectedNode();
+  vtkMRMLNode* getSelectedNode();
   void setCurrentNode(vtkMRMLNode* node);
 
 protected slots:

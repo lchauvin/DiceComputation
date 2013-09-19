@@ -34,6 +34,7 @@
 
 // MRML includes
 #include "vtkMRMLScalarVolumeNode.h"
+#include "vtkPolyData.h"
 
 // STD includes
 #include <cstdlib>
@@ -53,6 +54,8 @@ public:
 
   void ComputeDiceCoefficient(std::vector<vtkMRMLScalarVolumeNode*> labelMaps,
                               std::vector<std::vector<double> >& resultsArray);
+  void ComputeHausdorffDistance(std::vector<vtkPolyData*> polyData,
+				std::vector<std::vector<double> >& resultsArray);
 
 protected:
   vtkSlicerDiceComputationLogic();

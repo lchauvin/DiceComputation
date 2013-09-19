@@ -53,8 +53,10 @@ public:
 
   std::vector<std::vector<double> > resultsArray;
   std::vector<vtkMRMLScalarVolumeNode*> labelMaps;
+  std::vector<vtkPolyData*> polyData;
   std::vector<vtkImageData*> STAPLEImages;
   int labelMapSize;
+  int polyDataSize;
   vtkMRMLAnnotationROINode* roiNode;
   vtkSlicerCropVolumeLogic* cropLogic;
 };
@@ -99,10 +101,6 @@ void qSlicerDiceComputationModuleWidget::setup()
   Q_D(qSlicerDiceComputationModuleWidget);
   d->setupUi(this);
   this->Superclass::setup();
-
-  // Hide STAPLE checkboxes
-  d->SensitivityRadioButton->hide();
-  d->SpecificityRadioButton->hide();
 
   connect(d->LabelMapNumberWidget, SIGNAL(valueChanged(double)),
           this, SLOT(onLabelMapNumberChanged(double)));
@@ -208,13 +206,9 @@ void qSlicerDiceComputationModuleWidget::onComputeButtonClicked()
     {
     this->computeDiceCoefficient();
     }
-  else if(d->SensitivityRadioButton->isChecked())
+  else if (d->HausdorffRadioButton->isChecked())
     {
-    this->computeSensitivity();
-    }
-  else if(d->SpecificityRadioButton->isChecked())
-    {
-    this->computeSpecificity();
+    this->computeHausdorffDistance();
     }
 }
 
@@ -223,6 +217,11 @@ void qSlicerDiceComputationModuleWidget::onComputeButtonClicked()
 bool qSlicerDiceComputationModuleWidget::findLabelMaps()
 {
   Q_D(qSlicerDiceComputationModuleWidget);
+
+  if (!d->LabelMapLayout)
+    {
+    return false;
+    }
 
   // Create list of scalar volume nodes
   d->labelMaps.clear();
@@ -238,7 +237,7 @@ bool qSlicerDiceComputationModuleWidget::findLabelMaps()
       if (tmpWidget)
         {
 	vtkMRMLScalarVolumeNode* currentNode 
-	  = tmpWidget->getSelectedNode();
+	  = vtkMRMLScalarVolumeNode::SafeDownCast(tmpWidget->getSelectedNode());
 	if (d->CropCheckbox->isChecked() && d->cropLogic && d->RoiWidget->mrmlROINode())
 	  {
 	  vtkSmartPointer<vtkMRMLScalarVolumeNode> croppedVolume
@@ -288,6 +287,53 @@ bool qSlicerDiceComputationModuleWidget::findLabelMaps()
   
   return true;
 }
+
+//-----------------------------------------------------------------------------
+bool qSlicerDiceComputationModuleWidget::findPolydata()
+{
+  Q_D(qSlicerDiceComputationModuleWidget);
+
+  if (!d->LabelMapLayout)
+    {
+    return false;
+    }
+
+  // Create list of scalar volume nodes
+  d->polyData.clear();
+  d->polyDataSize = 0;
+
+  for (int i = 0; i < d->LabelMapLayout->count(); i++)
+    {
+    QLayoutItem* child;
+    if ((child = d->LabelMapLayout->itemAt(i)) != 0)
+      {
+      qSlicerDiceComputationLabelMapSelectorWidget* tmpWidget
+        = dynamic_cast<qSlicerDiceComputationLabelMapSelectorWidget*>(child->widget());
+      if (tmpWidget)
+        {
+	vtkMRMLModelNode* currentNode 
+	  = vtkMRMLModelNode::SafeDownCast(tmpWidget->getSelectedNode());
+	if (currentNode)
+	  {
+	  vtkPolyData* polyD = currentNode->GetPolyData();
+	  if (polyD)
+	    {
+	    d->polyData.push_back(polyD);
+	    }
+	  }
+	}
+      }
+    }
+
+  d->polyDataSize = d->polyData.size();
+  if (d->polyData.size() < 2)
+    {
+    return false;
+    }
+
+  return true;
+}
+
 
 //-----------------------------------------------------------------------------
 void qSlicerDiceComputationModuleWidget::computeDiceCoefficient()
@@ -356,57 +402,86 @@ void qSlicerDiceComputationModuleWidget::computeDiceCoefficient()
     }
 }
 
+
 //-----------------------------------------------------------------------------
-void qSlicerDiceComputationModuleWidget::computeSensitivity()
+void qSlicerDiceComputationModuleWidget::computeHausdorffDistance()
 {
   Q_D(qSlicerDiceComputationModuleWidget);
   
-  if (!this->findLabelMaps())
+  if (!this->findPolydata())
     {
     return;
     }
 
-  d->STAPLEImages.clear();
-  FilterType::Pointer filter = FilterType::New();
-  filter->SetForegroundValue(1);
-
-  for (int i = 0; i < d->labelMapSize; i++)
+  // Compute dice coefficients
+  vtkSlicerDiceComputationLogic* dcLogic =
+    vtkSlicerDiceComputationLogic::SafeDownCast(this->logic());
+  if (dcLogic)
     {
-    if (d->labelMaps[i] != NULL)
-      {
-      double* range = d->labelMaps[i]->GetImageData()->GetPointData()->GetScalars()->GetRange(0);
+    dcLogic->ComputeHausdorffDistance(d->polyData, d->resultsArray);
+    }
 
-      if (range[1] != 1)
+  // Display results
+  if (d->OutputFrame->collapsed())
+    {
+    d->OutputFrame->setCollapsed(false);
+    }
+
+  d->OutputResultsTable->clear();
+  d->OutputResultsTable->clearContents();
+  d->OutputResultsTable->setRowCount(d->polyDataSize);
+  d->OutputResultsTable->setColumnCount(d->polyDataSize);
+
+  // Find maximum distance value
+  double maxDistance = 0.0;
+  for (int i = 0; i < d->polyDataSize; ++i)
+    {
+    for (int j = 0; j < d->polyDataSize; ++j)
+      {
+      if (d->resultsArray[i][j] > maxDistance)
 	{
-	// Change label values to 1
-	vtkSmartPointer<vtkImageLabelChange> labelChanger
-	  = vtkSmartPointer<vtkImageLabelChange>::New();
-	vtkSmartPointer<vtkImageData> tmpData
-	  = vtkSmartPointer<vtkImageData>::New();
-	labelChanger->SetInput(d->labelMaps[i]->GetImageData());
-	labelChanger->SetOutput(tmpData.GetPointer());
-	labelChanger->SetInputLabel(range[1]);
-	labelChanger->SetOutputLabel(1);
-	labelChanger->Update();
-	d->STAPLEImages.push_back(tmpData.GetPointer());
+	maxDistance = d->resultsArray[i][j];
 	}
-      
-      // TODO: Set filter inputs here
-      // Need to convert from VTK to ITK first
       }
     }
-  filter->UpdateLargestPossibleRegion();
-  
-}
 
-//-----------------------------------------------------------------------------
-void qSlicerDiceComputationModuleWidget::computeSpecificity()
-{
-  Q_D(qSlicerDiceComputationModuleWidget);
-  
-  if (!this->findLabelMaps())
+
+  for (int i = 0; i < d->polyDataSize; ++i)
     {
-    return;
+    for (int j = 0; j < d->polyDataSize; ++j)
+      {
+      QTableWidgetItem* item = new QTableWidgetItem();
+      if (item)
+        {
+        double hDist = d->resultsArray[i][j];
+        QBrush* brush = new QBrush();
+        if (hDist == -1)
+          {
+          // Wrong. Red color.
+          brush->setColor(QColor::fromRgb(255,0,0,128));
+          brush->setStyle(Qt::FDiagPattern);
+          }
+        else if (i == j)
+          {
+          brush->setColor(QColor::fromRgb(0,255,0,220));
+          brush->setStyle(Qt::FDiagPattern);
+          }
+        else
+          {
+          // Good. Green color. Opacity depending on Dice's coefficient
+          brush->setColor(QColor::fromRgb(0,255,0,255*(1.0-hDist/maxDistance)));
+          brush->setStyle(Qt::SolidPattern);
+          }
+        item->setBackground(*brush);
+
+        if ((hDist >= 0) && (i != j))
+          {
+	  
+          item->setText(QString::number(hDist,'g',3));
+          }
+        d->OutputResultsTable->setItem(i,j,item);
+        }
+      }
     }
 }
 
@@ -420,11 +495,13 @@ void qSlicerDiceComputationModuleWidget::onComputeStatsClicked()
     return;
     }
 
+  int arraySize = d->DiceRadioButton->isChecked() ? d->labelMapSize : d->polyDataSize;
+
   // Clear table
   d->StatsTable->clear();
   d->StatsTable->clearContents();
   d->StatsTable->setRowCount(0);
-  d->StatsTable->setColumnCount(d->labelMapSize);
+  d->StatsTable->setColumnCount(arraySize);
 
   // Get checkbox states
   bool averageChecked = d->AverageCheckbox->isChecked();
@@ -444,7 +521,7 @@ void qSlicerDiceComputationModuleWidget::onComputeStatsClicked()
       d->StatsTable->setVerticalHeaderItem(0, averageHeader);
       }
 
-    for (int i = 0; i < d->labelMapSize; i++)
+    for (int i = 0; i < arraySize; ++i)
       {
       this->computeAverage(i);
       }
@@ -462,7 +539,7 @@ void qSlicerDiceComputationModuleWidget::onComputeStatsClicked()
       d->StatsTable->setVerticalHeaderItem(d->StatsTable->rowCount()-1, stdDevHeader);
       }
     
-    for (int i = 0; i < d->labelMapSize; i++)
+    for (int i = 0; i < arraySize; ++i)
       {
       this->computeStdDev(i);
       }
@@ -480,7 +557,7 @@ void qSlicerDiceComputationModuleWidget::onComputeStatsClicked()
       d->StatsTable->setVerticalHeaderItem(d->StatsTable->rowCount()-1, minHeader);
       }
 
-    for (int i = 0; i < d->labelMapSize; i++)
+    for (int i = 0; i < arraySize; ++i)
       {
       this->computeMin(i);
       }
@@ -498,7 +575,7 @@ void qSlicerDiceComputationModuleWidget::onComputeStatsClicked()
       d->StatsTable->setVerticalHeaderItem(d->StatsTable->rowCount()-1, maxHeader);
       }
 
-    for (int i = 0; i < d->labelMapSize; i++)
+    for (int i = 0; i < arraySize; ++i)
       {
       this->computeMax(i);
       }
@@ -518,7 +595,9 @@ void qSlicerDiceComputationModuleWidget::computeAverage(int column)
 
   int numberOfValues = 0;
   double average = 0.0;
-  for (int row = 0; row < d->labelMapSize; row++)
+  int arraySize = d->DiceRadioButton->isChecked() ? d->labelMapSize : d->polyDataSize;
+
+  for (int row = 0; row < arraySize; row++)
     {
     if (column != row)
       {
@@ -575,6 +654,7 @@ void qSlicerDiceComputationModuleWidget::computeStdDev(int column)
   double average = -1.0;
   int numberOfValues = 0;
   double stdDeviation = -1.0;
+  int arraySize = d->DiceRadioButton->isChecked() ? d->labelMapSize : d->polyDataSize;
 
   QTableWidgetItem* averageItem = d->StatsTable->item(0,column);
   if (averageItem)
@@ -588,7 +668,7 @@ void qSlicerDiceComputationModuleWidget::computeStdDev(int column)
   // Compute std dev
   if (average > 0)
     {
-    for (int row = 0; row < d->labelMapSize; row++)
+    for (int row = 0; row < arraySize; row++)
       {
       if (column != row)
         {
@@ -645,8 +725,9 @@ void qSlicerDiceComputationModuleWidget::computeMin(int column)
     }
 
   double min = 999.0;
+  int arraySize = d->DiceRadioButton->isChecked() ? d->labelMapSize : d->polyDataSize;
 
-  for (int row = 0; row < d->labelMapSize; row++)
+  for (int row = 0; row < arraySize; row++)
     {
     if (column != row)
       {
@@ -664,17 +745,9 @@ void qSlicerDiceComputationModuleWidget::computeMin(int column)
   QBrush* newBrush = new QBrush();
   if (newMinItem && newBrush)
     {
-    if (min <= 1.0 && min >= 0.0)
-      {
-      newBrush->setColor((QColor::fromRgb(0,255,0,min*255)));
-      newBrush->setStyle(Qt::SolidPattern);
-      newMinItem->setText(QString::number(min,'f',3));
-      }
-    else
-      {
-      newBrush->setColor(QColor::fromRgb(255,0,0,128));
-      newBrush->setStyle(Qt::FDiagPattern);
-      }
+    newBrush->setColor((QColor::fromRgb(0,255,0,min*255)));
+    newBrush->setStyle(Qt::SolidPattern);
+    newMinItem->setText(QString::number(min,'f',3)); 
     newMinItem->setBackground(*newBrush);
     d->StatsTable->setItem(d->StatsTable->rowCount()-1,column, newMinItem);
     }
@@ -691,8 +764,9 @@ void qSlicerDiceComputationModuleWidget::computeMax(int column)
     }
 
   double max = -999.0;
+  int arraySize = d->DiceRadioButton->isChecked() ? d->labelMapSize : d->polyDataSize;
 
-  for (int row = 0; row < d->labelMapSize; row++)
+  for (int row = 0; row < arraySize; row++)
     {
     if (column != row)
       {
@@ -710,17 +784,9 @@ void qSlicerDiceComputationModuleWidget::computeMax(int column)
   QBrush* newBrush = new QBrush();
   if (newMaxItem && newBrush)
     {
-    if (max <= 1.0 && max >= 0.0)
-      {
-      newBrush->setColor((QColor::fromRgb(255,0,0,max*255)));
-      newBrush->setStyle(Qt::SolidPattern);
-      newMaxItem->setText(QString::number(max,'f',3));
-      }
-    else
-      {
-      newBrush->setColor(QColor::fromRgb(255,0,0,128));
-      newBrush->setStyle(Qt::FDiagPattern);
-      }
+    newBrush->setColor((QColor::fromRgb(255,0,0,max*255)));
+    newBrush->setStyle(Qt::SolidPattern);
+    newMaxItem->setText(QString::number(max,'f',3));
     newMaxItem->setBackground(*newBrush);
     d->StatsTable->setItem(d->StatsTable->rowCount()-1,column, newMaxItem);
     }

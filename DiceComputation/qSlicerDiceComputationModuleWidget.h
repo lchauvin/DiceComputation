@@ -55,8 +55,7 @@ public:
     void onLabelMapNumberChanged(double mapNumber);
     void onComputeButtonClicked();
     void computeDiceCoefficient();
-    void computeSensitivity();
-    void computeSpecificity();
+    void computeHausdorffDistance();
     void onComputeStatsClicked();
     void computeAverage(int column);
     void computeStdDev(int column);
@@ -73,6 +72,7 @@ protected:
 
     virtual void setup();
     bool findLabelMaps();
+    bool findPolydata();
 
 private:
     Q_DECLARE_PRIVATE(qSlicerDiceComputationModuleWidget);

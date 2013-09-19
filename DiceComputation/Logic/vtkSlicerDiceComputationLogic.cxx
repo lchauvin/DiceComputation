@@ -30,6 +30,9 @@
 #include <vtkImageData.h>
 #include <vtkImageLogic.h>
 #include <vtkNew.h>
+#include <vtkMath.h>
+#include <vtkPoints.h>
+#include <vtkMergePoints.h>
 
 // STD includes
 #include <cassert>
@@ -109,11 +112,10 @@ void vtkSlicerDiceComputationLogic
     for (int j = 0; (j <= i) && (j < numberOfSamples); j++)
       {
       // Put -1 if one of the map is not selected
-      if (labelMaps[i] != NULL && labelMaps[j] != NULL)
+      vtkMRMLScalarVolumeNode* labelMap1 = labelMaps[i];
+      vtkMRMLScalarVolumeNode* labelMap2 = labelMaps[j];
+      if (labelMap1 != NULL && labelMap2 != NULL)
         {
-        vtkMRMLScalarVolumeNode* labelMap1 = labelMaps[i];
-        vtkMRMLScalarVolumeNode* labelMap2 = labelMaps[j];
-
         // Dice coeff of a map with itself is 1.0
         if (i == j)
           {
@@ -151,6 +153,95 @@ void vtkSlicerDiceComputationLogic
         {
         resultsArray[i][j] = resultsArray[j][i] = -1.0;
         }
+      }
+    }
+}
+
+//---------------------------------------------------------------------------
+void vtkSlicerDiceComputationLogic
+::ComputeHausdorffDistance(std::vector<vtkPolyData*> polyData,
+			   std::vector<std::vector<double> >& resultsArray)
+{
+  // Clean previous results and resize array
+  int numberOfSamples = polyData.size();
+  resultsArray.clear();
+  resultsArray.resize(numberOfSamples);
+  for (int s = 0; s < numberOfSamples; s++)
+    {
+    resultsArray[s].clear();
+    resultsArray[s].resize(numberOfSamples);
+    }
+  
+  for (int i = 0; i < numberOfSamples; ++i)
+    {
+    // Matrix is symmetric. Only do a half (j <= i)
+    for (int j = 0; (j <= i) && (j < numberOfSamples); ++j)
+      {
+      // Put -1 if one of the map is not selected
+      vtkPolyData* poly1 = polyData[i];
+      vtkPolyData* poly2 = polyData[j];
+      if (poly1 != NULL && poly2 != NULL)
+        {
+        // Hausdorff distance of a polydata with itself is 0.0
+        if (i == j)
+          {
+          resultsArray[i][j] = 0.0;
+          }	
+	else
+	  {
+	  double maximumDistance = 0.0;
+
+	  // Compute haudorff distance
+	  vtkSmartPointer<vtkMergePoints> loc1 = vtkSmartPointer<vtkMergePoints>::New();
+	  loc1->SetDataSet(poly1);
+	  loc1->AutomaticOn();
+	  loc1->BuildLocator();
+
+	  vtkSmartPointer<vtkMergePoints> loc2 = vtkSmartPointer<vtkMergePoints>::New();
+	  loc2->SetDataSet(poly2);
+	  loc2->AutomaticOn();
+	  loc2->BuildLocator();
+	  
+	  vtkSmartPointer<vtkPoints> points1 = poly1->GetPoints();
+	  vtkSmartPointer<vtkPoints> points2 = poly2->GetPoints();
+	  
+	  int nOfPoints1 = points1->GetNumberOfPoints();
+	  int nOfPoints2 = points2->GetNumberOfPoints();
+	  
+ 	  for (int i = 0; i < nOfPoints1; i++)
+	    {
+	    double* point1 = points1->GetPoint(i);
+	    vtkIdType closestPoint1 = loc2->FindClosestPoint(point1);
+	    double *point2 = points2->GetPoint(closestPoint1);
+	    double distance = std::sqrt(vtkMath::Distance2BetweenPoints(point1, point2));
+	    if (distance > maximumDistance)
+	      {
+	      maximumDistance = distance;
+	      }
+	    }
+
+ 	  for (int i = 0; i < nOfPoints2; i++)
+	    {
+	    double* point3 = points2->GetPoint(i);
+	    vtkIdType closestPoint2 = loc1->FindClosestPoint(point3);
+	    double *point4 = points1->GetPoint(closestPoint2);
+	    double distance2 = std::sqrt(vtkMath::Distance2BetweenPoints(point3, point4));
+	    if (distance2 > maximumDistance)
+	      {
+	      maximumDistance = distance2;
+	      }
+	    }
+
+	  if (maximumDistance == 0)
+	    {
+	    resultsArray[i][j] = resultsArray[j][i] = -1.0;	    
+	    }
+	  else
+	    {
+	    resultsArray[i][j] = resultsArray[j][i] = maximumDistance;	    
+	    }
+	  }
+	}
       }
     }
 }

@@ -58,8 +58,8 @@
        </layout>
       </item>
       <item>
-       <layout class="QVBoxLayout" name="verticalLayout_6">
-        <item>
+       <layout class="QGridLayout" name="gridLayout_3">
+        <item row="0" column="0">
          <widget class="QRadioButton" name="DiceRadioButton">
           <property name="text">
            <string>Dice</string>
@@ -69,17 +69,10 @@
           </property>
          </widget>
         </item>
-        <item>
-         <widget class="QRadioButton" name="SensitivityRadioButton">
+        <item row="0" column="1">
+         <widget class="QRadioButton" name="HausdorffRadioButton">
           <property name="text">
-           <string>Sensitivity (STAPLE)</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QRadioButton" name="SpecificityRadioButton">
-          <property name="text">
-           <string>Specificity (STAPLE)</string>
+           <string>Hausdorff Distance</string>
           </property>
          </widget>
         </item>

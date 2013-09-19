@@ -41,7 +41,7 @@ public:
   virtual void setupUi(qSlicerDiceComputationLabelMapSelectorWidget*);
 
   bool isNodeSelected;
-  vtkMRMLScalarVolumeNode* nodeSelected;
+  vtkMRMLNode* nodeSelected;
 };
 
 // --------------------------------------------------------------------------
@@ -80,7 +80,7 @@ qSlicerDiceComputationLabelMapSelectorWidget
   d->LabelMapSelector->setNoneEnabled(true);
   d->LabelMapSelector->setShowChildNodeTypes(true);
   d->LabelMapSelector->setRenameEnabled(true);
-  d->LabelMapSelector->setNodeTypes(QStringList() << "vtkMRMLScalarVolumeNode");
+  d->LabelMapSelector->setNodeTypes(QStringList() << "vtkMRMLScalarVolumeNode" << "vtkMRMLModelNode");
 
   connect(d->LabelMapSelector, SIGNAL(currentNodeChanged(vtkMRMLNode*)),
 	  this, SLOT(onNodeChanged(vtkMRMLNode*)));
@@ -113,13 +113,13 @@ void qSlicerDiceComputationLabelMapSelectorWidget
   Q_D(qSlicerDiceComputationLabelMapSelectorWidget);
 
   std::stringstream labelName;
-  labelName << "LabelMap " << itemPosition;
+  labelName << "Item " << itemPosition;
   
   d->LabelMapLabel->setText(labelName.str().c_str());
 }
 
 //-----------------------------------------------------------------------------
-vtkMRMLScalarVolumeNode* qSlicerDiceComputationLabelMapSelectorWidget
+vtkMRMLNode* qSlicerDiceComputationLabelMapSelectorWidget
 ::getSelectedNode()
 {
   Q_D(qSlicerDiceComputationLabelMapSelectorWidget);
@@ -129,7 +129,7 @@ vtkMRMLScalarVolumeNode* qSlicerDiceComputationLabelMapSelectorWidget
     return NULL;
     }
 
-  return d->nodeSelected;
+  return d->nodeSelected;  
 }
 
 //-----------------------------------------------------------------------------
@@ -148,6 +148,9 @@ void qSlicerDiceComputationLabelMapSelectorWidget
 {
   Q_D(qSlicerDiceComputationLabelMapSelectorWidget);
 
+  // TODO: Set a flag to tell if label map or not
+
+/*
   if (!newNode || !newNode->IsA("vtkMRMLScalarVolumeNode"))
     {
     d->nodeSelected = NULL;
@@ -166,6 +169,14 @@ void qSlicerDiceComputationLabelMapSelectorWidget
     return;
     }
 
-  d->nodeSelected = tmpNode;
   d->isNodeSelected = true;
+*/
+  d->nodeSelected = NULL;
+  d->isNodeSelected = false;
+  
+  if (newNode)
+    {
+    d->nodeSelected = newNode;
+    d->isNodeSelected = true;
+    }
 }
