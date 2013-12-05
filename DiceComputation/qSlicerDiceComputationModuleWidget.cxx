@@ -402,8 +402,6 @@ void qSlicerDiceComputationModuleWidget::computeSensitivity()
 //-----------------------------------------------------------------------------
 void qSlicerDiceComputationModuleWidget::computeSpecificity()
 {
-  Q_D(qSlicerDiceComputationModuleWidget);
-  
   if (!this->findLabelMaps())
     {
     return;
