@@ -34,6 +34,7 @@
 
 // MRML includes
 #include "vtkMRMLScalarVolumeNode.h"
+#include "vtkMRMLScene.h"
 #include "vtkPolyData.h"
 
 // STD includes

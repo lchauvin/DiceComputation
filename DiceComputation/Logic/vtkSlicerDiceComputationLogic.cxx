@@ -29,10 +29,12 @@
 #include <vtkImageAccumulate.h>
 #include <vtkImageData.h>
 #include <vtkImageLogic.h>
-#include <vtkNew.h>
+#include <vtkIntArray.h>
 #include <vtkMath.h>
-#include <vtkPoints.h>
 #include <vtkMergePoints.h>
+#include <vtkNew.h>
+#include <vtkObjectFactory.h>
+#include <vtkPoints.h>
 
 // STD includes
 #include <cassert>
