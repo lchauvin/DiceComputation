@@ -160,7 +160,7 @@ void vtkSlicerDiceComputationLogic
 //---------------------------------------------------------------------------
 void vtkSlicerDiceComputationLogic
 ::ComputeHausdorffDistance(std::vector<vtkPolyData*> polyData,
-			   std::vector<std::vector<double> >& resultsArray)
+                           std::vector<std::vector<double> >& resultsArray)
 {
   // Clean previous results and resize array
   int numberOfSamples = polyData.size();
@@ -171,7 +171,7 @@ void vtkSlicerDiceComputationLogic
     resultsArray[s].clear();
     resultsArray[s].resize(numberOfSamples);
     }
-  
+
   for (int i = 0; i < numberOfSamples; ++i)
     {
     // Matrix is symmetric. Only do a half (j <= i)
@@ -186,62 +186,62 @@ void vtkSlicerDiceComputationLogic
         if (i == j)
           {
           resultsArray[i][j] = 0.0;
-          }	
-	else
-	  {
-	  double maximumDistance = 0.0;
+          }
+        else
+          {
+          double maximumDistance = 0.0;
 
-	  // Compute haudorff distance
-	  vtkSmartPointer<vtkMergePoints> loc1 = vtkSmartPointer<vtkMergePoints>::New();
-	  loc1->SetDataSet(poly1);
-	  loc1->AutomaticOn();
-	  loc1->BuildLocator();
+          // Compute haudorff distance
+          vtkSmartPointer<vtkMergePoints> loc1 = vtkSmartPointer<vtkMergePoints>::New();
+          loc1->SetDataSet(poly1);
+          loc1->AutomaticOn();
+          loc1->BuildLocator();
 
-	  vtkSmartPointer<vtkMergePoints> loc2 = vtkSmartPointer<vtkMergePoints>::New();
-	  loc2->SetDataSet(poly2);
-	  loc2->AutomaticOn();
-	  loc2->BuildLocator();
-	  
-	  vtkSmartPointer<vtkPoints> points1 = poly1->GetPoints();
-	  vtkSmartPointer<vtkPoints> points2 = poly2->GetPoints();
-	  
-	  int nOfPoints1 = points1->GetNumberOfPoints();
-	  int nOfPoints2 = points2->GetNumberOfPoints();
-	  
- 	  for (int i = 0; i < nOfPoints1; i++)
-	    {
-	    double* point1 = points1->GetPoint(i);
-	    vtkIdType closestPoint1 = loc2->FindClosestPoint(point1);
-	    double *point2 = points2->GetPoint(closestPoint1);
-	    double distance = std::sqrt(vtkMath::Distance2BetweenPoints(point1, point2));
-	    if (distance > maximumDistance)
-	      {
-	      maximumDistance = distance;
-	      }
-	    }
+          vtkSmartPointer<vtkMergePoints> loc2 = vtkSmartPointer<vtkMergePoints>::New();
+          loc2->SetDataSet(poly2);
+          loc2->AutomaticOn();
+          loc2->BuildLocator();
 
- 	  for (int i = 0; i < nOfPoints2; i++)
-	    {
-	    double* point3 = points2->GetPoint(i);
-	    vtkIdType closestPoint2 = loc1->FindClosestPoint(point3);
-	    double *point4 = points1->GetPoint(closestPoint2);
-	    double distance2 = std::sqrt(vtkMath::Distance2BetweenPoints(point3, point4));
-	    if (distance2 > maximumDistance)
-	      {
-	      maximumDistance = distance2;
-	      }
-	    }
+          vtkSmartPointer<vtkPoints> points1 = poly1->GetPoints();
+          vtkSmartPointer<vtkPoints> points2 = poly2->GetPoints();
 
-	  if (maximumDistance == 0)
-	    {
-	    resultsArray[i][j] = resultsArray[j][i] = -1.0;	    
-	    }
-	  else
-	    {
-	    resultsArray[i][j] = resultsArray[j][i] = maximumDistance;	    
-	    }
-	  }
-	}
+          int nOfPoints1 = points1->GetNumberOfPoints();
+          int nOfPoints2 = points2->GetNumberOfPoints();
+
+          for (int pt = 0; pt < nOfPoints1; ++pt)
+            {
+            double* point1 = points1->GetPoint(pt);
+            vtkIdType closestPoint1 = loc2->FindClosestPoint(point1);
+            double *point2 = points2->GetPoint(closestPoint1);
+            double distance = std::sqrt(vtkMath::Distance2BetweenPoints(point1, point2));
+            if (distance > maximumDistance)
+              {
+              maximumDistance = distance;
+              }
+            }
+
+          for (int pt = 0; pt < nOfPoints2; ++pt)
+            {
+            double* point3 = points2->GetPoint(pt);
+            vtkIdType closestPoint2 = loc1->FindClosestPoint(point3);
+            double *point4 = points1->GetPoint(closestPoint2);
+            double distance2 = std::sqrt(vtkMath::Distance2BetweenPoints(point3, point4));
+            if (distance2 > maximumDistance)
+              {
+              maximumDistance = distance2;
+              }
+            }
+
+          if (maximumDistance == 0)
+            {
+            resultsArray[i][j] = resultsArray[j][i] = -1.0;
+            }
+          else
+            {
+            resultsArray[i][j] = resultsArray[j][i] = maximumDistance;
+            }
+          }
+        }
       }
     }
 }
@@ -266,14 +266,14 @@ int vtkSlicerDiceComputationLogic
 
   int numberOfCommonPixels = 0;
 
-  vtkSmartPointer<vtkImageLogic> logicFilter 
+  vtkSmartPointer<vtkImageLogic> logicFilter
     = vtkSmartPointer<vtkImageLogic>::New();
   logicFilter->SetInput1(imData1);
   logicFilter->SetInput2(imData2);
   logicFilter->SetOperationToAnd();
   logicFilter->Update();
 
-  vtkSmartPointer<vtkImageData> tmpOutput 
+  vtkSmartPointer<vtkImageData> tmpOutput
     = vtkSmartPointer<vtkImageData>::New();
   tmpOutput = logicFilter->GetOutput();
 
