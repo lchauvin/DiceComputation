@@ -818,6 +818,8 @@ void qSlicerDiceComputationModuleWidget::onExportDiceClicked()
 {
   Q_D(qSlicerDiceComputationModuleWidget);
 
+  int arraySize = d->DiceRadioButton->isChecked() ? d->labelMapSize : d->polyDataSize;
+
   QString fileName = QFileDialog::getSaveFileName(this, tr("Open File"),
                                                  "",
                                                  tr("CSV (*.csv)"));
@@ -828,14 +830,14 @@ void qSlicerDiceComputationModuleWidget::onExportDiceClicked()
     {
     std::stringstream currentLine;
     currentLine << ",";
-    for (int i = -1; i < d->labelMapSize; i++)
+    for (int i = -1; i < arraySize; i++)
       {
       if (i >= 0)
 	{
 	currentLine.str(std::string());
 	currentLine << "LabelMap " << i << ",";
 	}
-      for (int j = 0; j < d->labelMapSize; j++)
+      for (int j = 0; j < arraySize; j++)
 	{
 	if (i == -1)
 	  {
@@ -870,6 +872,8 @@ void qSlicerDiceComputationModuleWidget::onExportStatisticsClicked()
 {
   Q_D(qSlicerDiceComputationModuleWidget);
 
+  int arraySize = d->DiceRadioButton->isChecked() ? d->labelMapSize : d->polyDataSize;
+
   QString fileName = QFileDialog::getSaveFileName(this, tr("Open File"),
                                                  "",
                                                  tr("CSV (*.csv)"));
@@ -892,7 +896,7 @@ void qSlicerDiceComputationModuleWidget::onExportStatisticsClicked()
 	  currentLine << headerItem->text().toStdString().c_str() << ",";
 	  }
 	}
-      for (int j = 0; j < d->labelMapSize; j++)
+      for (int j = 0; j < arraySize; j++)
 	{
 	if (i == -1)
 	  {
