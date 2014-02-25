@@ -191,7 +191,9 @@ void vtkSlicerDiceComputationLogic
           }
         else
           {
-          double maximumDistance = 0.0;
+          double meanDistance = 0.0;
+	  double meanAB = 0.0;
+	  double meanBA = 0.0;
 
           // Compute haudorff distance
           vtkSmartPointer<vtkMergePoints> loc1 = vtkSmartPointer<vtkMergePoints>::New();
@@ -216,10 +218,8 @@ void vtkSlicerDiceComputationLogic
             vtkIdType closestPoint1 = loc2->FindClosestPoint(point1);
             double *point2 = points2->GetPoint(closestPoint1);
             double distance = std::sqrt(vtkMath::Distance2BetweenPoints(point1, point2));
-            if (distance > maximumDistance)
-              {
-              maximumDistance = distance;
-              }
+
+	    meanAB += distance;
             }
 
           for (int pt = 0; pt < nOfPoints2; ++pt)
@@ -228,20 +228,13 @@ void vtkSlicerDiceComputationLogic
             vtkIdType closestPoint2 = loc1->FindClosestPoint(point3);
             double *point4 = points1->GetPoint(closestPoint2);
             double distance2 = std::sqrt(vtkMath::Distance2BetweenPoints(point3, point4));
-            if (distance2 > maximumDistance)
-              {
-              maximumDistance = distance2;
-              }
+
+	    meanBA += distance2;
             }
 
-          if (maximumDistance == 0)
-            {
-            resultsArray[i][j] = resultsArray[j][i] = -1.0;
-            }
-          else
-            {
-            resultsArray[i][j] = resultsArray[j][i] = maximumDistance;
-            }
+	  meanDistance = ((meanAB/nOfPoints1) + (meanBA/nOfPoints2))/2.0;
+
+	  resultsArray[i][j] = resultsArray[j][i] = meanDistance;
           }
         }
       }
