@@ -263,8 +263,13 @@ int vtkSlicerDiceComputationLogic
 
   vtkSmartPointer<vtkImageLogic> logicFilter
     = vtkSmartPointer<vtkImageLogic>::New();
+#if VTK_MAJOR_VERSION <= 5
   logicFilter->SetInput1(imData1);
   logicFilter->SetInput2(imData2);
+#else
+  logicFilter->SetInput1Data(imData1);
+  logicFilter->SetInput2Data(imData2);
+#endif
   logicFilter->SetOperationToAnd();
   logicFilter->Update();
 
@@ -304,7 +309,11 @@ int vtkSlicerDiceComputationLogic
   // Efficient way to computer number of pixels != 0
   vtkSmartPointer<vtkImageAccumulate> pixelCounter
     = vtkSmartPointer<vtkImageAccumulate>::New();
+#if VTK_MAJOR_VERSION <= 5
   pixelCounter->SetInput(imData);
+#else
+  pixelCounter->SetInputData(imData);
+#endif
   pixelCounter->IgnoreZeroOn();
   pixelCounter->Update();
 
