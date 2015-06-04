@@ -33,7 +33,7 @@
 #include "vtkSlicerModuleLogic.h"
 
 // MRML includes
-#include "vtkMRMLScalarVolumeNode.h"
+#include "vtkMRMLLabelMapVolumeNode.h"
 #include "vtkMRMLScene.h"
 #include "vtkPolyData.h"
 
@@ -53,7 +53,7 @@ public:
   vtkTypeMacro(vtkSlicerDiceComputationLogic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent);
 
-  void ComputeDiceCoefficient(std::vector<vtkMRMLScalarVolumeNode*> labelMaps,
+  void ComputeDiceCoefficient(std::vector<vtkMRMLLabelMapVolumeNode*> labelMaps,
                               std::vector<std::vector<double> >& resultsArray);
   void ComputeHausdorffDistance(std::vector<vtkPolyData*> polyData,
 				std::vector<std::vector<double> >& resultsArray);
@@ -69,9 +69,9 @@ protected:
   virtual void OnMRMLSceneNodeAdded(vtkMRMLNode* node);
   virtual void OnMRMLSceneNodeRemoved(vtkMRMLNode* node);
 
-  int ComputeIntersection(vtkMRMLScalarVolumeNode* map1,
-                          vtkMRMLScalarVolumeNode* map2);
-  int GetNumberOfPixels(vtkMRMLScalarVolumeNode* map);
+  int ComputeIntersection(vtkMRMLLabelMapVolumeNode* map1,
+                          vtkMRMLLabelMapVolumeNode* map2);
+  int GetNumberOfPixels(vtkMRMLLabelMapVolumeNode* map);
   int GetNumberOfPixels(vtkImageData* imData);
 
 private:
