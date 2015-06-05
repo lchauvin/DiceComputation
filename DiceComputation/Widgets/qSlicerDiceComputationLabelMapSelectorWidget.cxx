@@ -80,7 +80,7 @@ qSlicerDiceComputationLabelMapSelectorWidget
   d->LabelMapSelector->setNoneEnabled(true);
   d->LabelMapSelector->setShowChildNodeTypes(true);
   d->LabelMapSelector->setRenameEnabled(true);
-  d->LabelMapSelector->setNodeTypes(QStringList() << "vtkMRMLScalarVolumeNode" << "vtkMRMLModelNode");
+  d->LabelMapSelector->setNodeTypes(QStringList() << "vtkMRMLLabelMapVolumeNode" << "vtkMRMLModelNode");
 
   connect(d->LabelMapSelector, SIGNAL(currentNodeChanged(vtkMRMLNode*)),
 	  this, SLOT(onNodeChanged(vtkMRMLNode*)));
@@ -149,6 +149,7 @@ void qSlicerDiceComputationLabelMapSelectorWidget
   Q_D(qSlicerDiceComputationLabelMapSelectorWidget);
 
   // TODO: Set a flag to tell if label map or not
+    //TODO: It is now not a flag, but the node type that tells the labelmap and scalar volumes apart: vtkMRMLLabelMapVolumeNode
 
 /*
   if (!newNode || !newNode->IsA("vtkMRMLScalarVolumeNode"))

@@ -41,6 +41,7 @@
 #include <vtkPointData.h>
 
 #include <vtkMRMLAnnotationROINode.h>
+#include <vtkMRMLLabelMapVolumeNode.h>
 #include <vtkSlicerCropVolumeLogic.h>
 
 //-----------------------------------------------------------------------------
@@ -52,7 +53,7 @@ public:
   ~qSlicerDiceComputationModuleWidgetPrivate();
 
   std::vector<std::vector<double> > resultsArray;
-  std::vector<vtkMRMLScalarVolumeNode*> labelMaps;
+  std::vector<vtkMRMLLabelMapVolumeNode*> labelMaps;
   std::vector<vtkPolyData*> polyData;
   std::vector<vtkImageData*> STAPLEImages;
   int labelMapSize;
@@ -236,14 +237,13 @@ bool qSlicerDiceComputationModuleWidget::findLabelMaps()
         = dynamic_cast<qSlicerDiceComputationLabelMapSelectorWidget*>(child->widget());
       if (tmpWidget)
         {
-	vtkMRMLScalarVolumeNode* currentNode 
-	  = vtkMRMLScalarVolumeNode::SafeDownCast(tmpWidget->getSelectedNode());
+	vtkMRMLLabelMapVolumeNode* currentNode 
+	  = vtkMRMLLabelMapVolumeNode::SafeDownCast(tmpWidget->getSelectedNode());
 	if (d->CropCheckbox->isChecked() && d->cropLogic && d->RoiWidget->mrmlROINode())
 	  {
-	  vtkSmartPointer<vtkMRMLScalarVolumeNode> croppedVolume
-	    = vtkSmartPointer<vtkMRMLScalarVolumeNode>::New();
+	  vtkSmartPointer<vtkMRMLLabelMapVolumeNode> croppedVolume
+	    = vtkSmartPointer<vtkMRMLLabelMapVolumeNode>::New();
 	  d->cropLogic->CropVoxelBased(d->RoiWidget->mrmlROINode(), currentNode, croppedVolume.GetPointer());
-	  croppedVolume->LabelMapOn();
 	  if (this->mrmlScene())
 	    {
 	    this->mrmlScene()->AddNode(croppedVolume.GetPointer());

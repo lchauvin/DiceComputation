@@ -94,7 +94,7 @@ void vtkSlicerDiceComputationLogic
 
 //---------------------------------------------------------------------------
 void vtkSlicerDiceComputationLogic
-::ComputeDiceCoefficient(std::vector<vtkMRMLScalarVolumeNode*> labelMaps,
+::ComputeDiceCoefficient(std::vector<vtkMRMLLabelMapVolumeNode*> labelMaps,
                          std::vector<std::vector<double> >& resultsArray)
 {
 
@@ -114,8 +114,8 @@ void vtkSlicerDiceComputationLogic
     for (int j = 0; (j <= i) && (j < numberOfSamples); j++)
       {
       // Put -1 if one of the map is not selected
-      vtkMRMLScalarVolumeNode* labelMap1 = labelMaps[i];
-      vtkMRMLScalarVolumeNode* labelMap2 = labelMaps[j];
+      vtkMRMLLabelMapVolumeNode* labelMap1 = labelMaps[i];
+      vtkMRMLLabelMapVolumeNode* labelMap2 = labelMaps[j];
       if (labelMap1 != NULL && labelMap2 != NULL)
         {
         // Dice coeff of a map with itself is 1.0
@@ -250,8 +250,8 @@ void vtkSlicerDiceComputationLogic
 
 //---------------------------------------------------------------------------
 int vtkSlicerDiceComputationLogic
-::ComputeIntersection(vtkMRMLScalarVolumeNode* map1,
-                      vtkMRMLScalarVolumeNode* map2)
+::ComputeIntersection(vtkMRMLLabelMapVolumeNode* map1,
+                      vtkMRMLLabelMapVolumeNode* map2)
 {
   if (!map1 || !map2)
     {
@@ -291,9 +291,9 @@ int vtkSlicerDiceComputationLogic
 
 //---------------------------------------------------------------------------
 int vtkSlicerDiceComputationLogic
-::GetNumberOfPixels(vtkMRMLScalarVolumeNode* map)
+::GetNumberOfPixels(vtkMRMLLabelMapVolumeNode* map)
 {
-  if (!map || map->GetLabelMap() == 0)
+  if (!map)
     {
     return -1;
     }
